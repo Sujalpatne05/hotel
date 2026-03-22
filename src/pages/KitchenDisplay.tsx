@@ -1,0 +1,407 @@
+import { useState, useEffect, useRef } from "react";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { Clock, CheckCircle2, AlertCircle, ChefHat, Flame, Snowflake, Timer } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import { buildAuthHeaders, clearAuthSession, isAuthError } from "@/lib/session";
+
+const API_BASE_URL = (() => {
+  const configured = (import.meta.env.VITE_API_URL || "").trim();
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
+    return "/api";
+  }
+  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+})();
+
+type ApiOrder = {
+  id: number;
+  items: string[];
+  total: string | number;
+  table_number?: number | null;
+  status?: "pending" | "preparing" | "ready" | "served";
+  created_at?: string;
+};
+
+interface KitchenOrder {
+  id: string;
+  orderNumber: string;
+  tableNumber: string;
+  items: OrderItem[];
+  status: "pending" | "preparing" | "ready" | "served";
+  priority: "normal" | "urgent";
+  timestamp: Date;
+  estimatedTime: number;
+  type: "dine-in" | "takeout" | "delivery";
+}
+
+interface OrderItem {
+  id: string;
+  name: string;
+  quantity: number;
+  notes?: string;
+  status: "pending" | "preparing" | "ready";
+  station: "hot" | "cold" | "grill" | "bar";
+}
+
+const inferStation = (name: string): OrderItem["station"] => {
+  const lowered = name.toLowerCase();
+  if (lowered.includes("salad") || lowered.includes("cold")) return "cold";
+  if (lowered.includes("wine") || lowered.includes("cola") || lowered.includes("shake") || lowered.includes("juice")) return "bar";
+  if (lowered.includes("grill") || lowered.includes("steak")) return "grill";
+  return "hot";
+};
+
+const parseBillItem = (raw: string, idx: number): OrderItem => {
+  const match = raw.match(/^(.*)\sx(\d+)$/i);
+  const name = match ? match[1].trim() : raw;
+  const quantity = match ? Number(match[2]) : 1;
+
+  return {
+    id: `${idx + 1}`,
+    name,
+    quantity,
+    status: "pending",
+    station: inferStation(name),
+  };
+};
+
+const toItemStatus = (orderStatus: KitchenOrder["status"]): OrderItem["status"] => {
+  if (orderStatus === "preparing") return "preparing";
+  if (orderStatus === "ready" || orderStatus === "served") return "ready";
+  return "pending";
+};
+
+export default function KitchenDisplay() {
+  const navigate = useNavigate();
+  const silentRedirected = useRef(false);
+  const [orders, setOrders] = useState<KitchenOrder[]>([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [filterStation, setFilterStation] = useState<string>("all");
+  const [statusView, setStatusView] = useState<"active" | "served" | "all">("active");
+  const [loading, setLoading] = useState(true);
+
+  const goToLogin = (message = "Session expired. Please login again.") => {
+    if (!silentRedirected.current) {
+      toast.error(message);
+      clearAuthSession();
+      silentRedirected.current = true;
+      setTimeout(() => navigate("/admin-login"), 300);
+    }
+  };
+
+  const loadOrders = async (silent = false) => {
+    try {
+      if (!silent) setLoading(true);
+      const headers = buildAuthHeaders();
+      if (!headers) {
+        goToLogin("Please login to continue.");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/orders`, { headers });
+      const data = await response.json();
+
+      if (isAuthError(response.status)) {
+        goToLogin(data?.error || "Session expired. Please login again.");
+        return;
+      }
+
+      if (!response.ok) {
+        if (!silent) toast.error(data?.error || "Unable to load orders for kitchen display");
+        return;
+      }
+
+      // Debug: log all orders to check table_number
+      console.log("Raw orders from API:", data);
+      const mapped: KitchenOrder[] = (Array.isArray(data) ? data : []).map((order: ApiOrder) => ({
+        id: String(order.id),
+        orderNumber: `ORD-${order.id}`,
+        tableNumber: order.table_number ? String(order.table_number) : "N/A",
+        items: (Array.isArray(order.items) ? order.items : []).map((rawItem, itemIdx) => {
+          const parsed = parseBillItem(rawItem, itemIdx);
+          return { ...parsed, status: toItemStatus(order.status || "pending") };
+        }),
+        status: order.status || "pending",
+        priority: Number(order.total) >= 1000 ? "urgent" : "normal",
+        timestamp: order.created_at ? new Date(order.created_at) : new Date(),
+        estimatedTime: 15,
+        type: "dine-in",
+      }));
+
+      setOrders(mapped);
+    } catch {
+      if (!silent) toast.error("Unable to connect to backend");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOrders();
+
+    const clockInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    const refreshInterval = setInterval(() => {
+      loadOrders(true);
+    }, 15000);
+
+    return () => {
+      clearInterval(clockInterval);
+      clearInterval(refreshInterval);
+    };
+  }, []);
+
+  const updateOrderStatus = async (orderId: string, nextStatus: KitchenOrder["status"]) => {
+    const headers = buildAuthHeaders();
+    if (!headers) {
+      goToLogin("Please login to continue.");
+      return;
+    }
+
+    const previous = orders;
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId
+          ? {
+              ...order,
+              status: nextStatus,
+              items: order.items.map((item) => ({ ...item, status: toItemStatus(nextStatus) })),
+            }
+          : order,
+      ),
+    );
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/orders/${orderId}/status`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const data = await response.json();
+      if (isAuthError(response.status)) {
+        goToLogin(data?.error || "Session expired. Please login again.");
+        return;
+      }
+      if (!response.ok) {
+        setOrders(previous);
+        toast.error(data?.error || "Unable to update order status");
+        return;
+      }
+      if (nextStatus === "preparing") {
+        toast.success("Order started");
+      } else if (nextStatus === "ready") {
+        toast.success("Order ready for serving");
+      } else if (nextStatus === "served") {
+        toast.success("Order served and table released");
+      }
+    } catch {
+      setOrders(previous);
+      toast.error("Unable to connect to backend");
+    }
+  };
+
+  const getElapsedTime = (timestamp: Date) => {
+    return Math.floor((currentTime.getTime() - timestamp.getTime()) / 60000);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending": return "bg-yellow-500";
+      case "preparing": return "bg-blue-500";
+      case "ready": return "bg-green-500";
+      case "served": return "bg-gray-500";
+      default: return "bg-gray-500";
+    }
+  };
+
+  const getStationIcon = (station: string) => {
+    switch (station) {
+      case "hot": return <Flame className="h-4 w-4 text-red-500" />;
+      case "cold": return <Snowflake className="h-4 w-4 text-blue-500" />;
+      case "grill": return <ChefHat className="h-4 w-4 text-orange-500" />;
+      case "bar": return <Clock className="h-4 w-4 text-purple-500" />;
+      default: return null;
+    }
+  };
+
+  const filteredOrders = orders
+    .filter((order) => {
+      if (statusView === "active") return order.status !== "served";
+      if (statusView === "served") return order.status === "served";
+      return true;
+    })
+    .filter(order => {
+      if (filterStation === "all") return true;
+      return order.items.some(item => item.station === filterStation);
+    })
+    .sort((a, b) => {
+      if (statusView === "served") {
+        return b.timestamp.getTime() - a.timestamp.getTime();
+      }
+      if (a.priority === "urgent" && b.priority !== "urgent") return -1;
+      if (a.priority !== "urgent" && b.priority === "urgent") return 1;
+      return a.timestamp.getTime() - b.timestamp.getTime();
+    });
+
+  const stats = {
+    pending: orders.filter(o => o.status === "pending").length,
+    preparing: orders.filter(o => o.status === "preparing").length,
+    ready: orders.filter(o => o.status === "ready").length,
+    served: orders.filter(o => o.status === "served").length,
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="p-4 md:p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Kitchen Display System</h1>
+            <p className="text-gray-600 mt-1">All backend orders are shown here automatically</p>
+            <p className="text-sm text-gray-500 mt-1">Current Time: {currentTime.toLocaleTimeString()}</p>
+          </div>
+          <Button variant="outline" onClick={() => loadOrders()}>
+            Refresh Orders
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-yellow-600">Pending</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-blue-600">Preparing</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{stats.preparing}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-green-600">Ready</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats.ready}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">Served</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-600">{stats.served}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <Button variant={statusView === "active" ? "default" : "outline"} size="sm" onClick={() => setStatusView("active")}>Active</Button>
+          <Button variant={statusView === "served" ? "default" : "outline"} size="sm" onClick={() => setStatusView("served")}>Served</Button>
+          <Button variant={statusView === "all" ? "default" : "outline"} size="sm" onClick={() => setStatusView("all")}>All</Button>
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <Button variant={filterStation === "all" ? "default" : "outline"} size="sm" onClick={() => setFilterStation("all")}>All Stations</Button>
+          <Button variant={filterStation === "hot" ? "default" : "outline"} size="sm" onClick={() => setFilterStation("hot")}><Flame className="h-4 w-4 mr-2" />Hot</Button>
+          <Button variant={filterStation === "cold" ? "default" : "outline"} size="sm" onClick={() => setFilterStation("cold")}><Snowflake className="h-4 w-4 mr-2" />Cold</Button>
+          <Button variant={filterStation === "grill" ? "default" : "outline"} size="sm" onClick={() => setFilterStation("grill")}><ChefHat className="h-4 w-4 mr-2" />Grill</Button>
+          <Button variant={filterStation === "bar" ? "default" : "outline"} size="sm" onClick={() => setFilterStation("bar")}>Bar</Button>
+        </div>
+
+        {loading ? (
+          <Card>
+            <CardContent className="py-12 text-center text-gray-500">Loading orders...</CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredOrders.map(order => {
+              const elapsed = getElapsedTime(order.timestamp);
+              const isOverdue = elapsed > order.estimatedTime;
+
+              return (
+                <Card key={order.id} className={cn("relative overflow-hidden", order.priority === "urgent" && "ring-2 ring-red-500", isOverdue && "ring-2 ring-orange-500")}>
+                  <div className={`absolute top-0 left-0 right-0 h-1 ${getStatusColor(order.status)}`} />
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-xl">{order.orderNumber}</CardTitle>
+                        <CardDescription className="text-sm mt-1">{order.type === "dine-in" ? `Table ${order.tableNumber}` : order.type.toUpperCase()}</CardDescription>
+                      </div>
+                      <div className="flex flex-col gap-2 items-end">
+                        {order.priority === "urgent" && <Badge className="bg-red-500"><AlertCircle className="h-3 w-3 mr-1" />URGENT</Badge>}
+                        <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className={cn("flex items-center gap-2 text-sm font-medium p-2 rounded", isOverdue ? "bg-red-50 text-red-700" : "bg-gray-50 text-gray-700")}>
+                      <Timer className="h-4 w-4" />
+                      <span>{elapsed} min elapsed</span>
+                      {isOverdue && <span className="ml-auto font-bold">OVERDUE</span>}
+                    </div>
+
+                    <div className="space-y-2">
+                      {order.items.map(item => (
+                        <div key={`${order.id}-${item.id}`} className="flex items-start gap-3 p-2 bg-gray-50 rounded">
+                          <div className="flex-shrink-0 mt-1">{getStationIcon(item.station)}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-sm">{item.quantity}x</span>
+                              <span className="text-sm">{item.name}</span>
+                            </div>
+                            {item.notes && <p className="text-xs text-orange-600 mt-1">Note: {item.notes}</p>}
+                          </div>
+                          <div className="flex gap-1">
+                            {item.status === "pending" && <Badge variant="outline">Pending</Badge>}
+                            {item.status === "preparing" && <Badge className="bg-blue-500">Preparing</Badge>}
+                            {item.status === "ready" && <Badge className="bg-green-500">Ready</Badge>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      {order.status === "pending" && <Button className="flex-1" onClick={() => updateOrderStatus(order.id, "preparing")}>Start Order</Button>}
+                      {order.status === "preparing" && <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => updateOrderStatus(order.id, "ready")}><CheckCircle2 className="h-4 w-4 mr-2" />Mark Ready</Button>}
+                      {order.status === "ready" && (
+                        <Button
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                          onClick={() => updateOrderStatus(order.id, "served")}
+                        >
+                          Serve Order
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        {!loading && filteredOrders.length === 0 && (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <ChefHat className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-500">
+                {statusView === "served" ? "No served orders found" : statusView === "all" ? "No orders found" : "No active orders in kitchen"}
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+}
+
