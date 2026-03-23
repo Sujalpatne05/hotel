@@ -728,6 +728,40 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    // PUT endpoint for updating staff
+    if (req.method === "PUT" && path.match(/^\/payroll\/staff\/\d+$/)) {
+      const id = Number(path.split("/").pop());
+      const body = await parseBody(req);
+      const staffIndex = payrollStaff.findIndex(s => s.id === id);
+      if (staffIndex === -1) {
+        send(res, 404, { error: "Staff member not found" });
+        return;
+      }
+      payrollStaff[staffIndex] = {
+        ...payrollStaff[staffIndex],
+        name: body.name ? String(body.name).trim() : payrollStaff[staffIndex].name,
+        role: body.role ? String(body.role).trim() : payrollStaff[staffIndex].role,
+        salary: body.salary !== undefined ? Number(body.salary) : payrollStaff[staffIndex].salary,
+        present: body.present !== undefined ? Boolean(body.present) : payrollStaff[staffIndex].present,
+        leaves: body.leaves !== undefined ? Number(body.leaves) : payrollStaff[staffIndex].leaves,
+      };
+      send(res, 200, payrollStaff[staffIndex]);
+      return;
+    }
+
+    // DELETE endpoint for removing staff
+    if (req.method === "DELETE" && path.match(/^\/payroll\/staff\/\d+$/)) {
+      const id = Number(path.split("/").pop());
+      const staffIndex = payrollStaff.findIndex(s => s.id === id);
+      if (staffIndex === -1) {
+        send(res, 404, { error: "Staff member not found" });
+        return;
+      }
+      const deleted = payrollStaff.splice(staffIndex, 1);
+      send(res, 200, { message: "Staff member deleted", deleted: deleted[0] });
+      return;
+    }
+
     if (req.method === "GET" && path === "/tasks") {
       send(res, 200, tasks);
       return;
@@ -747,6 +781,38 @@ const server = createServer(async (req, res) => {
       };
       tasks.push(task);
       send(res, 201, task);
+      return;
+    }
+
+    // PUT endpoint for updating tasks
+    if (req.method === "PUT" && path.match(/^\/tasks\/\d+$/)) {
+      const id = Number(path.split("/").pop());
+      const body = await parseBody(req);
+      const taskIndex = tasks.findIndex(t => t.id === id);
+      if (taskIndex === -1) {
+        send(res, 404, { error: "Task not found" });
+        return;
+      }
+      tasks[taskIndex] = {
+        ...tasks[taskIndex],
+        title: body.title ? String(body.title).trim() : tasks[taskIndex].title,
+        assigned_to: body.assigned_to ? String(body.assigned_to).trim() : tasks[taskIndex].assigned_to,
+        status: body.status ? String(body.status) : tasks[taskIndex].status,
+      };
+      send(res, 200, tasks[taskIndex]);
+      return;
+    }
+
+    // DELETE endpoint for removing tasks
+    if (req.method === "DELETE" && path.match(/^\/tasks\/\d+$/)) {
+      const id = Number(path.split("/").pop());
+      const taskIndex = tasks.findIndex(t => t.id === id);
+      if (taskIndex === -1) {
+        send(res, 404, { error: "Task not found" });
+        return;
+      }
+      const deleted = tasks.splice(taskIndex, 1);
+      send(res, 200, { message: "Task deleted", deleted: deleted[0] });
       return;
     }
 
