@@ -1,7 +1,8 @@
-import { FastifyInstance } from 'fastify';
-import pool from '../db';
+import fastifyPkg from 'fastify';
+const { FastifyInstance } = fastifyPkg;
+import pool from '../db.ts';
 import { z } from 'zod';
-import { requireRoles } from '../middleware/auth';
+import { requireRoles } from '../middleware/auth.ts';
 
 const CreateOrderSchema = z.object({
   userId: z.number().int().positive(),
@@ -24,16 +25,15 @@ const parseId = (value: string) => Number(value);
 export default async function orderRoutes(app: FastifyInstance) {
     // Payment summary endpoint
     app.get('/orders/payment-summary', { preHandler: requireRoles(['admin', 'superadmin']) }, async () => {
-      // Group by payment_method and order_type, sum totals and count orders
+      // Group by status, sum totals and count orders
       const result = await pool.query(`
         SELECT 
-          payment_method,
-          order_type,
+          status,
           COUNT(*) AS order_count,
           SUM(total) AS total_amount
         FROM orders
-        GROUP BY payment_method, order_type
-        ORDER BY payment_method, order_type
+        GROUP BY status
+        ORDER BY status
       `);
       return result.rows;
     });
@@ -54,8 +54,8 @@ export default async function orderRoutes(app: FastifyInstance) {
     const { userId, items, total, orderType, paymentMethod, table_number } = parsed.data;
     try {
       const result = await pool.query(
-        'INSERT INTO orders (user_id, items, total, order_type, payment_method, table_number) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-        [userId, items, total, orderType, paymentMethod, table_number ?? null],
+        'INSERT INTO orders (user_id, items, total, status, table_number) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [userId, items, total, 'pending', table_number ?? null],
       );
       reply.code(201);
       return result.rows[0];

@@ -38,13 +38,13 @@ const Reports = () => {
   }, []);
 
   const topItemsChart = useMemo(() => {
-    if (overview.topItems.length > 0) return overview.topItems;
+    if (overview.topItems && overview.topItems.length > 0) return overview.topItems;
     return [{ name: "No Data", orders: 0 }];
   }, [overview.topItems]);
 
   const handleDownload = (type: "pdf" | "csv") => {
     if (type === "csv") {
-      const csvRows = ["Item,Orders", ...overview.topItems.map((item) => `${item.name},${item.orders}`)];
+      const csvRows = ["Item,Orders", ...(overview.topItems || []).map((item) => `${item.name},${item.orders}`)];
       const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
@@ -61,7 +61,7 @@ const Reports = () => {
     doc.text(`Orders: ${overview.totalOrders}`, 10, 32);
     doc.text(`Customers: ${overview.totalCustomers}`, 10, 40);
     doc.text("Top Items:", 10, 50);
-    overview.topItems.forEach((item, idx) => {
+    (overview.topItems || []).forEach((item, idx) => {
       doc.text(`${idx + 1}. ${item.name} - ${item.orders}`, 14, 58 + idx * 8);
     });
     doc.save("restaurant-report.pdf");

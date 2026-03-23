@@ -1,17 +1,38 @@
-import { FastifyInstance } from 'fastify';
-import pool from '../db';
+import path from 'path';
+import fs from 'fs';
+import fastifyPkg from 'fastify';
+const { FastifyInstance } = fastifyPkg;
+import pool from '../db.ts';
 import { z } from 'zod';
-import { requireRoles } from '../middleware/auth';
+import { requireRoles } from '../middleware/auth.ts';
 
 const MenuItemSchema = z.object({
   name: z.string().min(1),
-  category: z.string().min(1),
+  category: z.string().min(1).optional(),
   price: z.number().positive(),
   available: z.boolean(),
   image_url: z.string().url().optional(),
 });
 
 export default async function menuRoutes(app: FastifyInstance) {
+  // Image upload endpoint
+  app.post('/menu/image', async (request, reply) => {
+    const data = await request.file();
+    if (!data) {
+      reply.code(400);
+      return { error: 'No file uploaded' };
+    }
+    const ext = path.extname(data.filename).toLowerCase();
+    if (!['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) {
+      reply.code(400);
+      return { error: 'Invalid file type' };
+    }
+    const fileName = `${Date.now()}-${data.filename.replace(/[^a-zA-Z0-9.]/g, '')}`;
+    const savePath = path.join(__dirname, '../../public/images', fileName);
+    await fs.promises.writeFile(savePath, await data.toBuffer());
+    const url = `/images/${fileName}`;
+    return { url };
+  });
   // Get all menu items
   app.get('/menu', async () => {
     const result = await pool.query('SELECT * FROM menu');
@@ -19,11 +40,9 @@ export default async function menuRoutes(app: FastifyInstance) {
     return result.rows.map(row => ({
       id: row.id,
       name: row.name,
-      category: row.category,
       price: row.price,
       available: row.available,
       image_url: row.image_url || '',
-      restaurant_id: row.restaurant_id,
     }));
   });
 
@@ -37,19 +56,17 @@ export default async function menuRoutes(app: FastifyInstance) {
     const { name, category, price, available, image_url } = parsed.data;
     try {
       const result = await pool.query(
-        'INSERT INTO menu (name, category, price, available, image_url) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [name, category, price, available, image_url || null],
+        'INSERT INTO menu (name, price, available, image_url) VALUES ($1, $2, $3, $4) RETURNING *',
+        [name, price, available, image_url || null],
       );
       // Always include image_url in the response, even if null
       const row = result.rows[0];
       return {
         id: row.id,
         name: row.name,
-        category: row.category,
         price: row.price,
         available: row.available,
         image_url: row.image_url || '',
-        restaurant_id: row.restaurant_id,
       };
     } catch (err) {
       reply.code(500);
@@ -85,11 +102,9 @@ export default async function menuRoutes(app: FastifyInstance) {
       return {
         id: row.id,
         name: row.name,
-        category: row.category,
         price: row.price,
         available: row.available,
         image_url: row.image_url || '',
-        restaurant_id: row.restaurant_id,
       };
     } catch (err) {
       reply.code(500);

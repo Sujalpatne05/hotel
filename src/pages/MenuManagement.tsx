@@ -287,9 +287,12 @@ const MenuManagement = () => {
                         <input type="number" name="price" value={newItem.price} onChange={handleChange} required className="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700">Food Image URL</label>
-                        <input type="url" name="image_url" value={newItem.image_url} onChange={handleChange} placeholder="https://..." className="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
-                        {newItem.image_url && (
+                        <label className="block text-sm font-medium text-gray-700">Food Image</label>
+                        <input type="file" accept="image/*" onChange={handleImageChange} className="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
+                        {imagePreview && (
+                          <img src={imagePreview} alt="Preview" className="mt-2 rounded w-full h-32 object-cover" />
+                        )}
+                        {!imagePreview && newItem.image_url && (
                           <img src={newItem.image_url} alt="Preview" className="mt-2 rounded w-full h-32 object-cover" />
                         )}
                       </div>
@@ -378,10 +381,32 @@ const MenuManagement = () => {
 
 export default MenuManagement;
 
-// Upload image to /public (for demo, replace with cloud upload for production)
+// Upload image to backend and return URL
 const uploadImage = async (file: File): Promise<string> => {
-  // This is a placeholder. In production, upload to S3/Cloudinary and return the URL.
-  // For now, just return a fake URL for demo.
-  return Promise.resolve(`/images/${file.name}`);
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64String = reader.result as string;
+        const token = localStorage.getItem('authToken');
+        const { API_BASE_URL } = await import('@/lib/api');
+        const res = await fetch(`${API_BASE_URL}/menu/image`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ image: base64String }),
+        });
+        if (!res.ok) throw new Error('Image upload failed');
+        const data = await res.json();
+        resolve(data.url);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
 };
 

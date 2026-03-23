@@ -61,15 +61,18 @@ const Billing: React.FC = () => {
 		setLoadingTables(true);
 		apiRequest<any[]>("/tables", { method: "GET" }, true)
 			.then(data => {
-				// Map backend table_number to number for dropdown compatibility
 				setTables(data.map(t => ({
 					id: t.id,
 					number: t.number ?? t.table_number, // support both
 					capacity: t.capacity,
-					status: t.status
+					status: t.status,
+					section: t.section || ""
 				})));
 			})
-			.catch(() => toast.error("Failed to load tables"))
+			.catch(() => {
+				setTables([]);
+				toast.error("Failed to load tables");
+			})
 			.finally(() => setLoadingTables(false));
 	}, []);
 
@@ -180,26 +183,28 @@ const Billing: React.FC = () => {
 										<div className="border-t border-orange-100 mb-4"></div>
 										<label className="block mb-2 text-base font-semibold text-orange-700">Table</label>
 										<div className="flex gap-2 items-center">
-											<select
-												className="border rounded px-3 py-2 bg-orange-50 focus:border-orange-400 focus:ring-2 focus:ring-orange-200 transition-all"
-												value={selectedTable ?? ""}
-												onChange={e => setSelectedTable(Number(e.target.value))}
-												disabled={loadingTables}
-											>
-												<option value="">Select Table</option>
-												{tables.map(t => (
-													<option key={t.id} value={t.number}>{t.number}</option>
-												))}
-											</select>
+													<select
+														className="border rounded px-3 py-2 bg-orange-50 focus:border-orange-400 focus:ring-2 focus:ring-orange-200 transition-all"
+														value={selectedTable ?? ""}
+														onChange={e => setSelectedTable(Number(e.target.value))}
+														disabled={loadingTables || tables.length === 0}
+													>
+														<option value="">{loadingTables ? "Loading tables..." : tables.length === 0 ? "No tables available" : "Select Table"}</option>
+														{tables.map(t => (
+															<option key={t.id} value={t.number}>
+																Table {t.number} ({t.section || "No section"}, {t.capacity} seats)
+															</option>
+														))}
+													</select>
 										</div>
 									</div>
 								)}
 								{/* Category Tabs and Search */}
 								<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-2 mb-4">
 									<div className="flex flex-wrap gap-2">
-										{menuCategories.map(cat => (
+										{menuCategories.map((cat, idx) => (
 											<Button
-												key={cat}
+												key={`${cat}-${idx}`}
 												size="sm"
 												variant={menuCategory === cat ? "default" : "outline"}
 												onClick={() => setMenuCategory(cat)}

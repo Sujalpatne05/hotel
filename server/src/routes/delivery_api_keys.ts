@@ -1,5 +1,6 @@
-import { FastifyInstance } from 'fastify';
-import pool from '../db';
+import fastifyPkg from 'fastify';
+const { FastifyInstance } = fastifyPkg;
+import pool from '../db.ts';
 
 // Table: delivery_api_keys (id serial primary key, swiggy_key text, zomato_key text)
 

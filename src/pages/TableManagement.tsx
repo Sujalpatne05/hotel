@@ -164,8 +164,19 @@ export default function TableManagement() {
   }, []);
 
   const handleAddTable = async () => {
+    // Validate required fields
     if (!newTable.number || !newTable.capacity) {
       toast.error("Please fill all required fields");
+      return;
+    }
+    // Validate positive capacity and number
+    if (Number(newTable.number) <= 0 || Number(newTable.capacity) <= 0) {
+      toast.error("Table number and capacity must be positive");
+      return;
+    }
+    // Validate unique table number
+    if (tables.some(t => t.number === Number(newTable.number))) {
+      toast.error("Table number must be unique");
       return;
     }
 
@@ -193,15 +204,17 @@ export default function TableManagement() {
       }
       if (!response.ok) {
         setError(data?.error || "Unable to add table.");
+        toast.error(data?.error || "Unable to add table.");
         return;
       }
 
-      setTables((prev) => [...prev, toUiTable(data)]);
+      await loadTableContext(true);
       setNewTable({ number: "", capacity: "", section: "Main Hall" });
       setIsAddDialogOpen(false);
       toast.success("Table added successfully");
     } catch {
       setError("Unable to connect to backend.");
+      toast.error("Unable to connect to backend.");
     } finally {
       setSaving(false);
     }
@@ -217,8 +230,8 @@ export default function TableManagement() {
         goToLogin("Please login to continue.");
         return;
       }
-      const response = await fetch(`${API_BASE_URL}/tables/${tableId}/status`, {
-        method: "PATCH",
+      const response = await fetch(`${API_BASE_URL}/tables/${tableId}`, {
+        method: "PUT",
         headers,
         body: JSON.stringify({ status: newStatus }),
       });
@@ -230,12 +243,15 @@ export default function TableManagement() {
       if (!response.ok) {
         setTables(previous);
         setError(data?.error || "Unable to update status.");
+        toast.error(data?.error || "Unable to update status.");
         return;
       }
+      await loadTableContext(true);
       toast.success("Table status updated");
     } catch {
       setTables(previous);
       setError("Unable to connect to backend.");
+      toast.error("Unable to connect to backend.");
     }
   };
 
@@ -257,12 +273,15 @@ export default function TableManagement() {
       if (!response.ok) {
         setTables(previous);
         setError(data?.error || "Unable to delete table.");
+        toast.error(data?.error || "Unable to delete table.");
         return;
       }
+      await loadTableContext(true);
       toast.success("Table deleted");
     } catch {
       setTables(previous);
       setError("Unable to connect to backend.");
+      toast.error("Unable to connect to backend.");
     }
   };
 

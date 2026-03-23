@@ -1,5 +1,6 @@
-import { FastifyInstance } from 'fastify';
-import pool from '../db';
+import fastifyPkg from 'fastify';
+const { FastifyInstance } = fastifyPkg;
+import pool from '../db.ts';
 import { z } from 'zod';
 
 // Delivery table assumed: deliveries (id serial primary key, order_number text, customer_name text, phone text, address text, partner text, amount numeric, driver text, status text, created_at timestamp)

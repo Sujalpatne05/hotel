@@ -12,6 +12,9 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      '/menu': 'http://localhost:5000',
+    },
   },
   plugins: [
     react(),
