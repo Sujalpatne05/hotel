@@ -22,8 +22,8 @@ const menu = [
 ];
 
 const orders = [
-  { id: 1001, user_id: 1, items: ["Paneer Tikka x1", "Garlic Naan x2"], total: 400, status: "pending" },
-  { id: 1002, user_id: 1, items: ["Butter Chicken x1", "Jeera Rice x1"], total: 530, status: "preparing" },
+  { id: 1001, user_id: 1, table_number: 2, items: ["Paneer Tikka x1", "Garlic Naan x2"], total: 400, status: "pending" },
+  { id: 1002, user_id: 1, table_number: 5, items: ["Butter Chicken x1", "Jeera Rice x1"], total: 530, status: "preparing" },
 ];
 
 const reservations = [
@@ -345,6 +345,7 @@ const server = createServer(async (req, res) => {
       const order = {
         id: nextOrderId++,
         user_id: Number(body.userId || 1),
+        table_number: body.table_number ? Number(body.table_number) : null,
         items: body.items.map((item) => String(item)),
         total: Number(body.total),
         status: "pending",

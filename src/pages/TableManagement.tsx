@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Users, Clock, Trash2, Receipt } from "lucide-react";
+import { Plus, Users, Clock, Trash2, Receipt, QrCode } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { buildAuthHeaders, clearAuthSession, isAuthError } from "@/lib/session";
+import { generateTableQRCode } from "@/lib/qrcode";
 
 interface Table {
   id: number;
@@ -75,6 +76,8 @@ export default function TableManagement() {
   const [clockTick, setClockTick] = useState(Date.now());
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isQRDialogOpen, setIsQRDialogOpen] = useState(false);
+  const [selectedTableForQR, setSelectedTableForQR] = useState<Table | null>(null);
   const [filterSection, setFilterSection] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [error, setError] = useState("");
@@ -395,6 +398,38 @@ export default function TableManagement() {
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 space-y-6">
+        {/* QR Code Dialog */}
+        <Dialog open={isQRDialogOpen} onOpenChange={setIsQRDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Table {selectedTableForQR?.number} - QR Code</DialogTitle>
+              <DialogDescription>Scan this QR code to start ordering</DialogDescription>
+            </DialogHeader>
+            <div className="flex flex-col items-center gap-4 py-6">
+              {selectedTableForQR && (
+                <>
+                  <img
+                    src={generateTableQRCode(selectedTableForQR.id)}
+                    alt={`QR Code for Table ${selectedTableForQR.number}`}
+                    className="w-64 h-64 border-2 border-gray-200 rounded-lg p-2"
+                  />
+                  <p className="text-sm text-gray-600 text-center">
+                    Customers can scan this QR code to view the menu and place orders for Table {selectedTableForQR.number}
+                  </p>
+                </>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsQRDialogOpen(false)}>Close</Button>
+              {selectedTableForQR && (
+                <Button onClick={() => navigate(`/table-qr/${selectedTableForQR.id}`)}>
+                  <QrCode className="h-4 w-4 mr-2" />
+                  Scan to Order
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -602,6 +637,17 @@ export default function TableManagement() {
                   >
                     <Receipt className="h-4 w-4 mr-2" />
                     Open Bill
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => {
+                      setSelectedTableForQR(table);
+                      setIsQRDialogOpen(true);
+                    }}
+                    title="Show QR Code"
+                  >
+                    <QrCode className="h-4 w-4" />
                   </Button>
                   {reservationByTable.get(table.number) && (
                     <Button

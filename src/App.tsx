@@ -12,6 +12,9 @@ import TableManagement from "./pages/TableManagement";
 import Reservations from "./pages/Reservations";
 import KitchenDisplay from "./pages/KitchenDisplay";
 import DeliveryManagement from "./pages/DeliveryManagement";
+import TableQROrdering from "./pages/TableQROrdering";
+import TablePayment from "./pages/TablePayment";
+import TableConfirmation from "./pages/TableConfirmation";
 import { Toaster } from "@/components/ui/toaster";
 import React from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -150,6 +153,9 @@ const App = () => {
           <Route path="/delivery-management" element={
             getRole() === "admin" ? <DeliveryManagement /> : <AdminLogin />
           } />
+          <Route path="/table-qr/:tableId" element={<TableQROrdering />} />
+          <Route path="/table-payment/:tableId/:orderId" element={<TablePayment />} />
+          <Route path="/table-confirmation/:tableId/:orderId" element={<TableConfirmation />} />
           <Route path="/superadmin-dashboard" element={isSuperAdmin() ? <SuperAdminDashboard /> : <SuperAdminLogin />} />
           <Route path="/superadmin-restaurants" element={isSuperAdmin() ? <SuperAdminRestaurants /> : <SuperAdminLogin />} />
           <Route path="/superadmin-subscriptions" element={isSuperAdmin() ? <SuperAdminSubscriptions /> : <SuperAdminLogin />} />
