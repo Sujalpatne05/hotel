@@ -31,6 +31,7 @@ const statusColor: Record<string, string> = {
 export default function Tasks() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newAssigned, setNewAssigned] = useState("");
   const [newStatus, setNewStatus] = useState("Pending");
@@ -96,6 +97,62 @@ export default function Tasks() {
     setNewStatus("Pending");
   };
 
+  const handleEditTask = (task: TaskItem) => {
+    setEditingId(task.id);
+    setNewTitle(task.title);
+    setNewAssigned(task.assigned_to);
+    setNewStatus(task.status);
+    setShowModal(true);
+  };
+
+  const handleUpdateTask = async () => {
+    if (!newTitle || !newAssigned || editingId === null) return;
+    const headers = buildAuthHeaders();
+    if (!headers) return;
+
+    const response = await fetch(`${API_BASE_URL}/tasks/${editingId}`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({
+        title: newTitle.trim(),
+        assignedTo: newAssigned.trim(),
+        status: newStatus,
+      }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      alert(data?.error || "Unable to update task");
+      return;
+    }
+
+    await loadTasks();
+    setShowModal(false);
+    setEditingId(null);
+    setNewTitle("");
+    setNewAssigned("");
+    setNewStatus("Pending");
+  };
+
+  const handleDeleteTask = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this task?")) return;
+    const headers = buildAuthHeaders();
+    if (!headers) return;
+
+    const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {
+      method: "DELETE",
+      headers,
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      alert(data?.error || "Unable to delete task");
+      return;
+    }
+
+    await loadTasks();
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -146,10 +203,10 @@ export default function Tasks() {
                         <span className={`px-2 py-1 rounded ${statusColor[task.status]}`}>{task.status}</span>
                       </td>
                       <td className="py-2 text-center">
-                        <button className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-orange-100 text-orange-600 font-semibold text-xs mr-1">
+                        <button onClick={() => handleEditTask(task)} className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-orange-100 text-orange-600 font-semibold text-xs mr-1">
                           <Edit className="h-4 w-4" /> Edit
                         </button>
-                        <button className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-red-100 text-red-600 font-semibold text-xs">
+                        <button onClick={() => handleDeleteTask(task.id)} className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-red-100 text-red-600 font-semibold text-xs">
                           <Trash2 className="h-4 w-4" /> Delete
                         </button>
                       </td>
@@ -161,9 +218,9 @@ export default function Tasks() {
           </CardContent>
         </Card>
         {showModal && (
-          <Dialog open={showModal} onClose={() => setShowModal(false)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <Dialog open={showModal} onClose={() => { setShowModal(false); setEditingId(null); setNewTitle(""); setNewAssigned(""); setNewStatus("Pending"); }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <Dialog.Panel className="bg-white p-6 rounded-xl shadow-xl w-[350px]">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><PlusCircle className="h-5 w-5 text-orange-400" /> Add Task</h3>
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><PlusCircle className="h-5 w-5 text-orange-400" /> {editingId ? "Edit Task" : "Add Task"}</h3>
               <input
                 type="text"
                 placeholder="Task Title"
@@ -189,13 +246,13 @@ export default function Tasks() {
               </select>
               <button
                 className="bg-orange-500 text-white px-4 py-2 rounded font-semibold hover:bg-orange-600 transition mr-2"
-                onClick={handleAddTask}
+                onClick={editingId ? handleUpdateTask : handleAddTask}
               >
-                <PlusCircle className="h-4 w-4 inline mr-1" /> Add
+                <PlusCircle className="h-4 w-4 inline mr-1" /> {editingId ? "Update" : "Add"}
               </button>
               <button
                 className="bg-gray-400 text-white px-4 py-2 rounded font-semibold hover:bg-gray-600 transition"
-                onClick={() => setShowModal(false)}
+                onClick={() => { setShowModal(false); setEditingId(null); setNewTitle(""); setNewAssigned(""); setNewStatus("Pending"); }}
               >
                 Cancel
               </button>

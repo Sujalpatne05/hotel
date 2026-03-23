@@ -27,6 +27,7 @@ type StaffMember = {
 export default function Payroll() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState("");
   const [newSalary, setNewSalary] = useState("");
@@ -96,6 +97,62 @@ export default function Payroll() {
     setNewSalary("");
   };
 
+  const handleEditStaff = (member: StaffMember) => {
+    setEditingId(member.id);
+    setNewName(member.name);
+    setNewRole(member.role);
+    setNewSalary(member.salary.toString());
+    setShowModal(true);
+  };
+
+  const handleUpdateStaff = async () => {
+    if (!newName || !newRole || !newSalary || editingId === null) return;
+    const headers = buildAuthHeaders();
+    if (!headers) return;
+
+    const response = await fetch(`${API_BASE_URL}/payroll/staff/${editingId}`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({
+        name: newName.trim(),
+        role: newRole.trim(),
+        salary: Number(newSalary),
+      }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      alert(data?.error || "Unable to update staff member");
+      return;
+    }
+
+    await loadStaff();
+    setShowModal(false);
+    setEditingId(null);
+    setNewName("");
+    setNewRole("");
+    setNewSalary("");
+  };
+
+  const handleDeleteStaff = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this staff member?")) return;
+    const headers = buildAuthHeaders();
+    if (!headers) return;
+
+    const response = await fetch(`${API_BASE_URL}/payroll/staff/${id}`, {
+      method: "DELETE",
+      headers,
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      alert(data?.error || "Unable to delete staff member");
+      return;
+    }
+
+    await loadStaff();
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -156,10 +213,10 @@ export default function Payroll() {
                       <td className="py-2 text-center">{s.leaves}</td>
                       <td className="py-2 text-right">{s.salary.toLocaleString()}</td>
                       <td className="py-2 text-center">
-                        <button className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-orange-100 text-orange-600 font-semibold text-xs mr-1">
+                        <button onClick={() => handleEditStaff(s)} className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-orange-100 text-orange-600 font-semibold text-xs mr-1">
                           <Edit className="h-4 w-4" /> Edit
                         </button>
-                        <button className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-red-100 text-red-600 font-semibold text-xs">
+                        <button onClick={() => handleDeleteStaff(s.id)} className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-red-100 text-red-600 font-semibold text-xs">
                           <Trash2 className="h-4 w-4" /> Delete
                         </button>
                       </td>
@@ -171,9 +228,9 @@ export default function Payroll() {
           </CardContent>
         </Card>
         {showModal && (
-          <Dialog open={showModal} onClose={() => setShowModal(false)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <Dialog open={showModal} onClose={() => { setShowModal(false); setEditingId(null); setNewName(""); setNewRole(""); setNewSalary(""); }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
             <Dialog.Panel className="bg-white p-6 rounded-xl shadow-xl w-[350px]">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><UserPlus className="h-5 w-5 text-orange-400" /> Add Staff</h3>
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><UserPlus className="h-5 w-5 text-orange-400" /> {editingId ? "Edit Staff" : "Add Staff"}</h3>
               <input
                 type="text"
                 placeholder="Name"
@@ -197,13 +254,13 @@ export default function Payroll() {
               />
               <button
                 className="bg-orange-500 text-white px-4 py-2 rounded font-semibold hover:bg-orange-600 transition mr-2"
-                onClick={handleAddStaff}
+                onClick={editingId ? handleUpdateStaff : handleAddStaff}
               >
-                <UserPlus className="h-4 w-4 inline mr-1" /> Add
+                <UserPlus className="h-4 w-4 inline mr-1" /> {editingId ? "Update" : "Add"}
               </button>
               <button
                 className="bg-gray-400 text-white px-4 py-2 rounded font-semibold hover:bg-gray-600 transition"
-                onClick={() => setShowModal(false)}
+                onClick={() => { setShowModal(false); setEditingId(null); setNewName(""); setNewRole(""); setNewSalary(""); }}
               >
                 Cancel
               </button>
