@@ -44,6 +44,7 @@ const menuItems = [
   { title: "Inventory", url: "/inventory", icon: Package },
   { title: "CRM", url: "/crm", icon: Users },
   { title: "Reports", url: "/reports", icon: BarChart3 },
+  { title: "Payments Overview", url: "/payments-overview", icon: CreditCard },
   // { title: "Recipe Management", url: "/recipe-management", icon: BookOpen },
   { title: "Table Management", url: "/table-management", icon: Table },
   { title: "Reservations", url: "/reservations", icon: Calendar },
