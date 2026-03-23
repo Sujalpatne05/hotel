@@ -37,19 +37,19 @@ import { getStoredRestaurantName } from "@/lib/session";
 const menuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Billing", url: "/billing", icon: Receipt },
+  { title: "Kitchen Display", url: "/kitchen-display", icon: Monitor },
+  { title: "Orders", url: "/orders", icon: ShoppingCart },
+  { title: "Menu Management", url: "/menu", icon: UtensilsCrossed },
+  { title: "Table Management", url: "/table-management", icon: Table },
+  { title: "Payments Overview", url: "/payments-overview", icon: CreditCard },
   { title: "Payroll", url: "/payroll", icon: Users },
   { title: "Tasks", url: "/tasks", icon: BarChart3 },
-  { title: "Menu Management", url: "/menu", icon: UtensilsCrossed },
-  { title: "Orders", url: "/orders", icon: ShoppingCart },
   { title: "Inventory", url: "/inventory", icon: Package },
   { title: "CRM", url: "/crm", icon: Users },
   { title: "Reports", url: "/reports", icon: BarChart3 },
-  { title: "Payments Overview", url: "/payments-overview", icon: CreditCard },
-  // { title: "Recipe Management", url: "/recipe-management", icon: BookOpen },
-  { title: "Table Management", url: "/table-management", icon: Table },
   { title: "Reservations", url: "/reservations", icon: Calendar },
-  { title: "Kitchen Display", url: "/kitchen-display", icon: Monitor },
   { title: "Delivery Management", url: "/delivery-management", icon: Truck },
+  // { title: "Recipe Management", url: "/recipe-management", icon: BookOpen },
 ];
 
 export function AppSidebar() {
