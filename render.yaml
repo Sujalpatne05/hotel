@@ -7,6 +7,68 @@ services:
       - key: VITE_API_URL
         value: https://hotel-vpuj.onrender.com
     routes:
+      # Catch all routes and redirect to index.html for React Router
       - path: /*
+        destination: /index.html
+        status: 200
+      # Specific routes
+      - path: /admin-login
+        destination: /index.html
+        status: 200
+      - path: /superadmin-login
+        destination: /index.html
+        status: 200
+      - path: /superadmin-dashboard
+        destination: /index.html
+        status: 200
+      - path: /dashboard
+        destination: /index.html
+        status: 200
+      - path: /billing
+        destination: /index.html
+        status: 200
+      - path: /orders
+        destination: /index.html
+        status: 200
+      - path: /menu
+        destination: /index.html
+        status: 200
+      - path: /kitchen-display
+        destination: /index.html
+        status: 200
+      - path: /table-management
+        destination: /index.html
+        status: 200
+      - path: /payroll
+        destination: /index.html
+        status: 200
+      - path: /tasks
+        destination: /index.html
+        status: 200
+      - path: /inventory
+        destination: /index.html
+        status: 200
+      - path: /crm
+        destination: /index.html
+        status: 200
+      - path: /reports
+        destination: /index.html
+        status: 200
+      - path: /payments-overview
+        destination: /index.html
+        status: 200
+      - path: /reservations
+        destination: /index.html
+        status: 200
+      - path: /delivery-management
+        destination: /index.html
+        status: 200
+      - path: /table-qr/*
+        destination: /index.html
+        status: 200
+      - path: /table-payment/*
+        destination: /index.html
+        status: 200
+      - path: /table-confirmation/*
         destination: /index.html
         status: 200
