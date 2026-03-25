@@ -16,7 +16,7 @@ const API_BASE_URL = (() => {
   return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
 })();
 
-type OrderStatus = "pending" | "preparing" | "ready" | "served";
+type OrderStatus = "pending" | "preparing" | "ready" | "served" | "completed";
 
 type ApiOrder = {
   id: number;
@@ -25,6 +25,9 @@ type ApiOrder = {
   items: string[];
   total: string | number;
   status: OrderStatus;
+  orderType?: string;
+  paymentStatus?: string;
+  paymentMethod?: string;
   created_at?: string;
 };
 
@@ -34,6 +37,9 @@ type Order = {
   items: string[];
   total: number;
   status: OrderStatus;
+  orderType?: string;
+  paymentStatus?: string;
+  paymentMethod?: string;
   createdAt: Date;
 };
 
@@ -42,6 +48,7 @@ const statusStyle: Record<OrderStatus, string> = {
   preparing: "bg-blue-500 text-white",
   ready: "bg-green-600 text-white",
   served: "bg-gray-500 text-white",
+  completed: "bg-green-700 text-white",
 };
 
 export default function Orders() {
@@ -77,14 +84,30 @@ export default function Orders() {
         return;
       }
 
-      const mapped = (Array.isArray(data) ? data : []).map((order: ApiOrder) => ({
-        id: order.id,
-        tableNumber: order.table_number ?? null,
-        items: Array.isArray(order.items) ? order.items : [],
-        total: Number(order.total),
-        status: order.status || "pending",
-        createdAt: order.created_at ? new Date(order.created_at) : new Date(),
-      }));
+      const mapped = (Array.isArray(data) ? data : []).map((order: ApiOrder) => {
+        // For dine-in orders, only show as "completed" if payment is taken
+        let displayStatus = order.status || "pending";
+        if (order.orderType === "dine-in" && order.status === "completed" && order.paymentStatus !== "paid") {
+          // If it's a dine-in order marked completed but payment not taken, show as "ready"
+          displayStatus = "ready";
+        }
+        // For takeaway/delivery orders with payment, show as "completed"
+        if ((order.orderType === "take-away" || order.orderType === "delivery") && order.paymentStatus === "paid") {
+          displayStatus = "completed";
+        }
+        
+        return {
+          id: order.id,
+          tableNumber: order.table_number ?? null,
+          items: Array.isArray(order.items) ? order.items : [],
+          total: Number(order.total),
+          status: displayStatus,
+          orderType: order.orderType,
+          paymentStatus: order.paymentStatus,
+          paymentMethod: order.paymentMethod,
+          createdAt: order.created_at ? new Date(order.created_at) : new Date(),
+        };
+      });
 
       setOrders(mapped);
     } catch {
@@ -104,9 +127,41 @@ export default function Orders() {
       preparing: orders.filter((o) => o.status === "preparing").length,
       ready: orders.filter((o) => o.status === "ready").length,
       served: orders.filter((o) => o.status === "served").length,
+      completed: orders.filter((o) => o.status === "completed").length,
     }),
     [orders],
   );
+
+  const getOrderTypeLabel = (orderType?: string) => {
+    switch (orderType) {
+      case "dine-in":
+        return "Dine-in";
+      case "take-away":
+        return "Takeaway";
+      case "delivery":
+        return "Delivery";
+      default:
+        return "Order";
+    }
+  };
+
+  const getOrderTypeColor = (orderType?: string) => {
+    switch (orderType) {
+      case "dine-in":
+        return "bg-blue-100 text-blue-800";
+      case "take-away":
+        return "bg-orange-100 text-orange-800";
+      case "delivery":
+        return "bg-purple-100 text-purple-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getPaymentMethodLabel = (method?: string) => {
+    if (!method) return "Not specified";
+    return method.toUpperCase();
+  };
 
   const renderOrders = (filter: "all" | OrderStatus) => {
     const list = filter === "all" ? orders : orders.filter((order) => order.status === filter);
@@ -120,20 +175,37 @@ export default function Orders() {
         {list.map((order) => (
           <Card key={order.id} className="shadow-card">
             <CardContent className="p-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold">ORD-{order.id}</span>
-                    <Badge className={statusStyle[order.status]}>{order.status}</Badge>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className="font-bold">ORD-{order.id}</span>
+                      <Badge className={statusStyle[order.status]}>{order.status}</Badge>
+                      <Badge className={getOrderTypeColor(order.orderType)}>
+                        {getOrderTypeLabel(order.orderType)}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{order.createdAt.toLocaleString()}</p>
+                    {order.tableNumber !== null && (
+                      <p className="text-xs text-muted-foreground">Table {order.tableNumber}</p>
+                    )}
+                    <p className="text-sm mt-2">{order.items.join(", ")}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{order.createdAt.toLocaleString()}</p>
-                  {order.tableNumber !== null && (
-                    <p className="text-xs text-muted-foreground">Table {order.tableNumber}</p>
-                  )}
-                  <p className="text-sm mt-2">{order.items.join(", ")}</p>
+                  <div className="text-right">
+                    <p className="font-bold">Rs. {order.total.toLocaleString("en-IN")}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold">Rs. {order.total.toLocaleString("en-IN")}</p>
+                <div className="flex flex-col sm:flex-row gap-4 pt-2 border-t text-xs">
+                  <div>
+                    <span className="text-muted-foreground">Payment Method: </span>
+                    <span className="font-semibold">{getPaymentMethodLabel(order.paymentMethod)}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Payment Status: </span>
+                    <span className={`font-semibold ${order.paymentStatus === "paid" ? "text-green-600" : "text-orange-600"}`}>
+                      {order.paymentStatus === "paid" ? "Paid" : "Unpaid"}
+                    </span>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -153,11 +225,12 @@ export default function Orders() {
 
         {error && <div className="text-sm text-red-600">{error}</div>}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard title="Pending" value={String(stats.pending)} icon={<ShoppingCart className="h-5 w-5" />} />
           <StatCard title="Preparing" value={String(stats.preparing)} icon={<Clock className="h-5 w-5" />} />
           <StatCard title="Ready" value={String(stats.ready)} icon={<CheckCircle className="h-5 w-5" />} />
           <StatCard title="Served" value={String(stats.served)} icon={<Truck className="h-5 w-5" />} />
+          <StatCard title="Completed" value={String(stats.completed)} icon={<CheckCircle className="h-5 w-5" />} />
         </div>
 
         <Tabs defaultValue="all">
@@ -167,6 +240,7 @@ export default function Orders() {
             <TabsTrigger value="preparing">Preparing</TabsTrigger>
             <TabsTrigger value="ready">Ready</TabsTrigger>
             <TabsTrigger value="served">Served</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
           </TabsList>
 
           <TabsContent value="all">{renderOrders("all")}</TabsContent>
@@ -174,6 +248,7 @@ export default function Orders() {
           <TabsContent value="preparing">{renderOrders("preparing")}</TabsContent>
           <TabsContent value="ready">{renderOrders("ready")}</TabsContent>
           <TabsContent value="served">{renderOrders("served")}</TabsContent>
+          <TabsContent value="completed">{renderOrders("completed")}</TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>

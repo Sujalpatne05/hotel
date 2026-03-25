@@ -22,8 +22,8 @@ const menu = [
 ];
 
 const orders = [
-  { id: 1001, user_id: 1, table_number: 2, items: ["Paneer Tikka x1", "Garlic Naan x2"], total: 400, status: "pending" },
-  { id: 1002, user_id: 1, table_number: 5, items: ["Butter Chicken x1", "Jeera Rice x1"], total: 530, status: "preparing" },
+  { id: 1001, user_id: 1, table_number: 2, items: ["Paneer Tikka x1", "Garlic Naan x2"], total: 400, status: "pending", orderType: "dine-in", paymentStatus: "unpaid", paymentMethod: null, created_at: new Date().toISOString() },
+  { id: 1002, user_id: 1, table_number: 5, items: ["Butter Chicken x1", "Jeera Rice x1"], total: 530, status: "preparing", orderType: "dine-in", paymentStatus: "unpaid", paymentMethod: null, created_at: new Date().toISOString() },
 ];
 
 const reservations = [
@@ -336,6 +336,18 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    // Get order by table number
+    if (req.method === "GET" && path.startsWith("/orders/table/")) {
+      const tableNum = Number(path.split("/").pop());
+      const order = orders.find(o => o.table_number === tableNum && o.status !== "completed");
+      if (order) {
+        send(res, 200, order);
+      } else {
+        send(res, 404, { error: "No active order for this table" });
+      }
+      return;
+    }
+
     if (req.method === "POST" && path === "/orders") {
       const body = await parseBody(req);
       if (!Array.isArray(body.items) || body.items.length === 0 || Number(body.total) <= 0) {
@@ -349,9 +361,41 @@ const server = createServer(async (req, res) => {
         items: body.items.map((item) => String(item)),
         total: Number(body.total),
         status: "pending",
+        orderType: String(body.orderType || "dine-in"),
+        paymentStatus: (String(body.orderType || "dine-in") === "delivery" || String(body.orderType) === "take-away") ? "paid" : "unpaid",
+        paymentMethod: body.paymentMethod ? String(body.paymentMethod) : null,
+        created_at: new Date().toISOString(),
       };
       orders.unshift(order);
       send(res, 201, order);
+      return;
+    }
+
+    // Update existing order (add items)
+    if (req.method === "PUT" && path.startsWith("/orders/")) {
+      const orderId = Number(path.split("/").pop());
+      const order = orders.find(o => o.id === orderId);
+      if (!order) {
+        send(res, 404, { error: "Order not found" });
+        return;
+      }
+      const body = await parseBody(req);
+      if (body.items) {
+        order.items = body.items.map((item) => String(item));
+      }
+      if (body.total !== undefined) {
+        order.total = Number(body.total);
+      }
+      if (body.status) {
+        order.status = String(body.status);
+      }
+      if (body.paymentStatus) {
+        order.paymentStatus = String(body.paymentStatus);
+      }
+      if (body.paymentMethod) {
+        order.paymentMethod = String(body.paymentMethod);
+      }
+      send(res, 200, order);
       return;
     }
 
@@ -434,6 +478,22 @@ const server = createServer(async (req, res) => {
         return;
       }
       table.status = String(body.status || table.status);
+      send(res, 200, table);
+      return;
+    }
+
+    if (req.method === "PUT" && path.startsWith("/tables/")) {
+      const id = Number(path.split("/")[2]);
+      const body = await parseBody(req);
+      const table = tables.find((item) => item.id === id);
+      if (!table) {
+        notFound(res);
+        return;
+      }
+      if (body.status) table.status = String(body.status);
+      if (body.current_order !== undefined) table.current_order = body.current_order;
+      if (body.reserved_by !== undefined) table.reserved_by = body.reserved_by;
+      if (body.estimated_time !== undefined) table.estimated_time = body.estimated_time;
       send(res, 200, table);
       return;
     }

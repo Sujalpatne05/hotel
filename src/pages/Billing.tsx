@@ -16,7 +16,7 @@ import { Monitor, ShoppingCart, UtensilsCrossed } from "lucide-react";
 
 const ORDER_TYPES = ["dine-in", "take-away", "delivery"] as const;
 const PAYMENT_METHODS = ["upi", "card", "cash"] as const;
-type Table = { id: number; number: number; capacity: number; status: string };
+type Table = { id: number; number: number; capacity: number; status: string; section?: string };
 type MenuItem = { id: number; name: string; price: number; category: string; available: boolean; image_url?: string };
 
 const MENU_CATEGORIES_DEFAULT = ["All"];
@@ -39,6 +39,10 @@ const Billing: React.FC = () => {
 	const [loadingMenu, setLoadingMenu] = useState(false);
 	const [tables, setTables] = useState<Table[]>([]);
 	const [loadingTables, setLoadingTables] = useState(false);
+	const [existingOrder, setExistingOrder] = useState<any>(null);
+	const [loadingOrder, setLoadingOrder] = useState(false);
+	const [recentOrders, setRecentOrders] = useState<any[]>([]);
+	const [loadingRecentOrders, setLoadingRecentOrders] = useState(false);
 
 	// Fetch menu from backend
 	useEffect(() => {
@@ -76,15 +80,69 @@ const Billing: React.FC = () => {
 			.finally(() => setLoadingTables(false));
 	}, []);
 
-	// Auto-select table from query string
+	// Fetch recent orders
+	useEffect(() => {
+		setLoadingRecentOrders(true);
+		apiRequest<any[]>("/orders", { method: "GET" }, true)
+			.then(data => {
+				// Get last 5 orders
+				const recent = data.slice(0, 5);
+				setRecentOrders(recent);
+			})
+			.catch(() => {
+				setRecentOrders([]);
+			})
+			.finally(() => setLoadingRecentOrders(false));
+	}, []);
+
+	// Auto-select table from query string and switch to dine-in
 	useEffect(() => {
 		const params = new URLSearchParams(location.search);
 		const tableParam = params.get("table");
 		if (tableParam && !selectedTable) {
 			const tableNum = Number(tableParam);
-			if (!isNaN(tableNum)) setSelectedTable(tableNum);
+			if (!isNaN(tableNum)) {
+				setSelectedTable(tableNum);
+				setOrderType("dine-in"); // always dine-in when opening from table management
+			}
 		}
 	}, [location.search, selectedTable]);
+
+	// Fetch existing order when table is selected (depends on menu being loaded)
+	useEffect(() => {
+		if (selectedTable && orderType === "dine-in" && menu.length > 0) {
+			setLoadingOrder(true);
+			apiRequest<any>(`/orders/table/${selectedTable}`, { method: "GET" }, true)
+				.then(data => {
+					setExistingOrder(data);
+					// Parse items from existing order
+					const parsedItems: OrderItem[] = data.items.map((itemStr: string) => {
+						// Parse format like "Butter Chicken x1"
+						const match = itemStr.match(/^(.+?)\s+x(\d+)$/);
+						if (match) {
+							const itemName = match[1];
+							const qty = Number(match[2]);
+							const menuItem = menu.find(m => m.name === itemName);
+							if (menuItem) {
+								return { id: menuItem.id, name: menuItem.name, price: menuItem.price, qty };
+							}
+							// Item not in menu, still show it with price 0
+							return { id: Date.now() + Math.random(), name: itemName, price: 0, qty };
+						}
+						return { id: Date.now() + Math.random(), name: itemStr, price: 0, qty: 1 };
+					}).filter(Boolean);
+					setOrderItems(parsedItems);
+				})
+				.catch(() => {
+					setExistingOrder(null);
+					setOrderItems([]);
+				})
+				.finally(() => setLoadingOrder(false));
+		} else {
+			setExistingOrder(null);
+			setOrderItems([]);
+		}
+	}, [selectedTable, orderType, menu]);
 
 	const addItem = (item: { id: number; name: string; price: number }) => {
 		setOrderItems((prev) => {
@@ -114,25 +172,61 @@ const Billing: React.FC = () => {
 			toast.error("Please select a table for dine-in orders.");
 			return;
 		}
+		// For delivery, require payment method selection
+		if (orderType === "delivery" && !paymentMethod) {
+			toast.error("Please select a payment method for delivery orders.");
+			return;
+		}
 		// Simulate userId from session (in real app, get from session)
 		const userId = 1; // TODO: Replace with actual userId from session if available
-		const payload = {
-			userId,
-			items: orderItems.map(i => i.name),
-			total,
-			orderType,
-			paymentMethod,
-			table_number: orderType === "dine-in" ? selectedTable : null,
-		};
+		
 		try {
-			await apiRequest("/orders", {
-				method: "POST",
-				body: JSON.stringify(payload),
-			});
-			toast.success("Order placed successfully!");
+			if (existingOrder) {
+				// Update existing order
+				const updatedItems = orderItems.map(i => `${i.name} x${i.qty}`);
+				await apiRequest(`/orders/${existingOrder.id}`, {
+					method: "PUT",
+					body: JSON.stringify({
+						items: updatedItems,
+						total,
+					}),
+				});
+				toast.success("Order updated successfully!");
+			} else {
+				// Create new order
+				const payload = {
+					userId,
+					items: orderItems.map(i => `${i.name} x${i.qty}`),
+					total,
+					orderType,
+					paymentMethod: (orderType === "delivery" || orderType === "take-away") ? paymentMethod : null,
+					table_number: orderType === "dine-in" ? selectedTable : null,
+				};
+				const newOrder = await apiRequest<any>("/orders", {
+					method: "POST",
+					body: JSON.stringify(payload),
+				});
+				
+				// Update table status to occupied for dine-in orders
+				if (orderType === "dine-in" && selectedTable) {
+					const table = tables.find(t => t.number === selectedTable);
+					if (table) {
+						await apiRequest(`/tables/${table.id}`, {
+							method: "PUT",
+							body: JSON.stringify({
+								status: "occupied",
+								current_order: `ORD-${newOrder.id}`,
+							}),
+						});
+					}
+				}
+				
+				toast.success("Order placed successfully!");
+			}
 			setOrderItems([]);
 			setCustomer({ name: "", phone: "", address: "" });
 			setSelectedTable(null);
+			setExistingOrder(null);
 		} catch (err: any) {
 			toast.error(err.message || "Failed to place order");
 		}
@@ -199,22 +293,10 @@ const Billing: React.FC = () => {
 										</div>
 									</div>
 								)}
-								{/* Category Tabs and Search */}
-								<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mt-2 mb-4">
-									<div className="flex flex-wrap gap-2">
-										{menuCategories.map((cat, idx) => (
-											<Button
-												key={`${cat}-${idx}`}
-												size="sm"
-												variant={menuCategory === cat ? "default" : "outline"}
-												onClick={() => setMenuCategory(cat)}
-											>
-												{cat}
-											</Button>
-										))}
-									</div>
+								{/* Search Menu */}
+								<div className="flex flex-col md:flex-row md:items-center md:justify-end gap-2 mt-2 mb-4">
 									<Input
-										className="max-w-xs mt-2 md:mt-0"
+										className="w-full"
 										placeholder="Search menu..."
 										value={menuSearch}
 										onChange={e => setMenuSearch(e.target.value)}
@@ -247,6 +329,7 @@ const Billing: React.FC = () => {
 							<CardHeader>
 								<CardTitle className="text-xl flex items-center gap-2">
 									<ShoppingCart className="text-orange-500" /> Order Summary
+									{existingOrder && <Badge className="bg-blue-500">Editing Order #{existingOrder.id}</Badge>}
 								</CardTitle>
 							</CardHeader>
 							<CardContent>
@@ -293,28 +376,94 @@ const Billing: React.FC = () => {
 										)}
 									</div>
 								)}
-								<div className="mb-4">
-									<div className="font-medium mb-1">Payment Method</div>
-									<div className="flex gap-2">
-										{PAYMENT_METHODS.map(method => (
-											<Button
-												key={method}
-												size="sm"
-												variant={paymentMethod === method ? "default" : "outline"}
-												onClick={() => setPaymentMethod(method)}
-											>
-												{method.toUpperCase()}
-											</Button>
-										))}
+								{(orderType === "take-away" || orderType === "delivery") && (
+									<div className="mb-4">
+										<div className="font-medium mb-1">Payment Method</div>
+										<div className="flex gap-2">
+											{PAYMENT_METHODS.map(method => (
+												<Button
+													key={method}
+													size="sm"
+													variant={paymentMethod === method ? "default" : "outline"}
+													onClick={() => setPaymentMethod(method)}
+												>
+													{method.toUpperCase()}
+												</Button>
+											))}
+										</div>
 									</div>
-								</div>
+								)}
 								<Button className="w-full bg-orange-500 hover:bg-orange-600" onClick={handlePlaceOrder} disabled={orderItems.length === 0}>
-									Place Order
+									{existingOrder ? "Update Order" : "Place Order"}
 								</Button>
 							</CardContent>
 						</Card>
 					</div>
 				</div>
+
+				{/* Recent Orders Section */}
+				<div className="max-w-6xl mx-auto w-full mt-8 mb-4">
+					<Card className="bg-white/90 shadow-lg">
+						<CardHeader>
+							<CardTitle className="text-lg flex items-center gap-2">
+								<ShoppingCart className="text-orange-500" size={20} /> Recent Orders
+							</CardTitle>
+						</CardHeader>
+						<CardContent>
+							{loadingRecentOrders ? (
+								<div className="text-center py-4 text-muted-foreground">Loading recent orders...</div>
+							) : recentOrders.length === 0 ? (
+								<div className="text-center py-4 text-muted-foreground">No recent orders</div>
+							) : (
+								<div className="overflow-x-auto">
+									<table className="w-full text-sm">
+										<thead>
+											<tr className="border-b bg-orange-50">
+												<th className="text-left py-2 px-3 font-semibold">Order ID</th>
+												<th className="text-left py-2 px-3 font-semibold">Type</th>
+												<th className="text-left py-2 px-3 font-semibold">Items</th>
+												<th className="text-right py-2 px-3 font-semibold">Amount</th>
+												<th className="text-center py-2 px-3 font-semibold">Status</th>
+											</tr>
+										</thead>
+										<tbody>
+											{recentOrders.map((order) => (
+												<tr key={order.id} className="border-b hover:bg-orange-50/50">
+													<td className="py-2 px-3 font-medium text-orange-600">ORD-{order.id}</td>
+													<td className="py-2 px-3">
+														<Badge className={
+															order.orderType === "dine-in" ? "bg-blue-100 text-blue-800" :
+															order.orderType === "take-away" ? "bg-orange-100 text-orange-800" :
+															"bg-purple-100 text-purple-800"
+														}>
+															{order.orderType === "dine-in" ? "Dine-in" : order.orderType === "take-away" ? "Takeaway" : "Delivery"}
+														</Badge>
+													</td>
+													<td className="py-2 px-3 text-muted-foreground truncate max-w-xs">
+														{Array.isArray(order.items) ? order.items.join(", ") : "N/A"}
+													</td>
+													<td className="py-2 px-3 text-right font-semibold">₹{order.total}</td>
+													<td className="py-2 px-3 text-center">
+														<Badge className={
+															order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+															order.status === "preparing" ? "bg-blue-100 text-blue-800" :
+															order.status === "ready" ? "bg-green-100 text-green-800" :
+															order.status === "completed" ? "bg-green-600 text-white" :
+															"bg-gray-100 text-gray-800"
+														}>
+															{order.status}
+														</Badge>
+													</td>
+												</tr>
+											))}
+										</tbody>
+									</table>
+								</div>
+							)}
+						</CardContent>
+					</Card>
+				</div>
+
 				{/* Footer */}
 				<footer className="w-full text-center py-4 text-muted-foreground text-xs bg-transparent mt-8">
 					&copy; {new Date().getFullYear()} RestroHub POS &mdash; Powered by pk cafe

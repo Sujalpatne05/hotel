@@ -23,6 +23,7 @@ type ApiOrder = {
   total: string | number;
   table_number?: number | null;
   status?: "pending" | "preparing" | "ready" | "served";
+  orderType?: string;
   created_at?: string;
 };
 
@@ -117,20 +118,25 @@ export default function KitchenDisplay() {
 
       // Debug: log all orders to check table_number
       console.log("Raw orders from API:", data);
-      const mapped: KitchenOrder[] = (Array.isArray(data) ? data : []).map((order: ApiOrder) => ({
-        id: String(order.id),
-        orderNumber: `ORD-${order.id}`,
-        tableNumber: order.table_number ? String(order.table_number) : "N/A",
-        items: (Array.isArray(order.items) ? order.items : []).map((rawItem, itemIdx) => {
-          const parsed = parseBillItem(rawItem, itemIdx);
-          return { ...parsed, status: toItemStatus(order.status || "pending") };
-        }),
-        status: order.status || "pending",
-        priority: Number(order.total) >= 1000 ? "urgent" : "normal",
-        timestamp: order.created_at ? new Date(order.created_at) : new Date(),
-        estimatedTime: 15,
-        type: "dine-in",
-      }));
+      const mapped: KitchenOrder[] = (Array.isArray(data) ? data : []).map((order: ApiOrder) => {
+        const orderType = order.orderType || "dine-in";
+        const displayType = orderType === "take-away" ? "takeout" : orderType === "delivery" ? "delivery" : "dine-in";
+        
+        return {
+          id: String(order.id),
+          orderNumber: `ORD-${order.id}`,
+          tableNumber: order.table_number ? String(order.table_number) : "N/A",
+          items: (Array.isArray(order.items) ? order.items : []).map((rawItem, itemIdx) => {
+            const parsed = parseBillItem(rawItem, itemIdx);
+            return { ...parsed, status: toItemStatus(order.status || "pending") };
+          }),
+          status: order.status || "pending",
+          priority: Number(order.total) >= 1000 ? "urgent" : "normal",
+          timestamp: order.created_at ? new Date(order.created_at) : new Date(),
+          estimatedTime: 15,
+          type: displayType as "dine-in" | "takeout" | "delivery",
+        };
+      });
 
       setOrders(mapped);
     } catch {
@@ -336,7 +342,13 @@ export default function KitchenDisplay() {
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle className="text-xl">{order.orderNumber}</CardTitle>
-                        <CardDescription className="text-sm mt-1">{order.type === "dine-in" ? `Table ${order.tableNumber}` : order.type.toUpperCase()}</CardDescription>
+                        <CardDescription className="text-sm mt-1">
+                          {order.type === "dine-in" ? `Table ${order.tableNumber}` : (
+                            <Badge className={order.type === "takeout" ? "bg-orange-500" : "bg-purple-500"}>
+                              {order.type === "takeout" ? "TAKEAWAY" : "DELIVERY"}
+                            </Badge>
+                          )}
+                        </CardDescription>
                       </div>
                       <div className="flex flex-col gap-2 items-end">
                         {order.priority === "urgent" && <Badge className="bg-red-500"><AlertCircle className="h-3 w-3 mr-1" />URGENT</Badge>}

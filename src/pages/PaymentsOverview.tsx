@@ -24,15 +24,16 @@ type Order = {
   status: string;
   paymentMethod: string;
   orderType?: string;
+  paymentStatus?: string;
   createdAt?: string;
 };
 
-type PaymentMethod = "card" | "cash" | "upi";
+type PaymentMethod = "card" | "cash" | "upi" | "all";
 
 export default function PaymentsOverview() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>("card");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
 
@@ -68,14 +69,19 @@ export default function PaymentsOverview() {
   // Calculate payment statistics
   const paymentStats = useMemo(() => {
     const stats = {
+      all: { total: 0, count: 0, orders: [] as Order[] },
       card: { total: 0, count: 0, orders: [] as Order[] },
       cash: { total: 0, count: 0, orders: [] as Order[] },
       upi: { total: 0, count: 0, orders: [] as Order[] },
     };
 
     orders.forEach((order) => {
+      stats.all.total += order.total;
+      stats.all.count += 1;
+      stats.all.orders.push(order);
+
       const method = (order.paymentMethod || "cash").toLowerCase() as PaymentMethod;
-      if (stats[method]) {
+      if (method !== "all" && stats[method]) {
         stats[method].total += order.total;
         stats[method].count += 1;
         stats[method].orders.push(order);
@@ -96,6 +102,8 @@ export default function PaymentsOverview() {
         return <Banknote className="h-5 w-5" />;
       case "upi":
         return <Smartphone className="h-5 w-5" />;
+      case "all":
+        return <TrendingUp className="h-5 w-5" />;
       default:
         return <CreditCard className="h-5 w-5" />;
     }
@@ -109,6 +117,8 @@ export default function PaymentsOverview() {
         return "bg-green-100 text-green-700 border-green-300";
       case "upi":
         return "bg-purple-100 text-purple-700 border-purple-300";
+      case "all":
+        return "bg-orange-100 text-orange-700 border-orange-300";
       default:
         return "bg-gray-100 text-gray-700 border-gray-300";
     }
@@ -124,6 +134,32 @@ export default function PaymentsOverview() {
       case "preparing":
       case "in progress":
         return "bg-blue-100 text-blue-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getOrderTypeLabel = (orderType?: string) => {
+    switch (orderType) {
+      case "dine-in":
+        return "Dine-in";
+      case "take-away":
+        return "Takeaway";
+      case "delivery":
+        return "Delivery";
+      default:
+        return "Order";
+    }
+  };
+
+  const getOrderTypeColor = (orderType?: string) => {
+    switch (orderType) {
+      case "dine-in":
+        return "bg-blue-100 text-blue-800";
+      case "take-away":
+        return "bg-orange-100 text-orange-800";
+      case "delivery":
+        return "bg-purple-100 text-purple-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -145,7 +181,36 @@ export default function PaymentsOverview() {
         </div>
 
         {/* Payment Method Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* All Orders */}
+          <Card
+            className={`cursor-pointer transition-all ${
+              selectedPaymentMethod === "all" ? "ring-2 ring-orange-500 shadow-lg" : "hover:shadow-md"
+            }`}
+            onClick={() => setSelectedPaymentMethod("all")}
+          >
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">All Orders</CardTitle>
+                <div className="bg-orange-100 p-2 rounded-lg">
+                  <TrendingUp className="h-5 w-5 text-orange-600" />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-3xl font-bold text-orange-600">₹{paymentStats.all.total.toLocaleString("en-IN")}</p>
+                <p className="text-sm text-gray-600">{paymentStats.all.count} orders</p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                  <div
+                    className="bg-orange-600 h-2 rounded-full"
+                    style={{ width: "100%" }}
+                  ></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Card Payments */}
           <Card
             className={`cursor-pointer transition-all ${
@@ -259,6 +324,7 @@ export default function PaymentsOverview() {
                     <tr className="border-b bg-gray-50">
                       <th className="text-left py-3 px-4 font-semibold">Order ID</th>
                       <th className="text-left py-3 px-4 font-semibold">Items</th>
+                      <th className="text-center py-3 px-4 font-semibold">Type</th>
                       <th className="text-center py-3 px-4 font-semibold">Table</th>
                       <th className="text-right py-3 px-4 font-semibold">Amount</th>
                       <th className="text-center py-3 px-4 font-semibold">Status</th>
@@ -275,6 +341,11 @@ export default function PaymentsOverview() {
                               {Array.isArray(order.items) ? order.items.join(", ") : "N/A"}
                             </p>
                           </div>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <Badge className={getOrderTypeColor(order.orderType)}>
+                            {getOrderTypeLabel(order.orderType)}
+                          </Badge>
                         </td>
                         <td className="py-3 px-4 text-center">
                           {order.table_number ? (
@@ -328,11 +399,23 @@ export default function PaymentsOverview() {
                     <p className="text-2xl font-bold text-blue-600">#{selectedOrder.id}</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Order Type</p>
+                    <Badge className={`${getOrderTypeColor(selectedOrder.orderType)} mt-1`}>
+                      {getOrderTypeLabel(selectedOrder.orderType)}
+                    </Badge>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-sm text-gray-600">Payment Method</p>
                     <div className="flex items-center gap-2 mt-1">
                       {getPaymentIcon(selectedPaymentMethod)}
                       <p className="text-lg font-bold capitalize">{selectedPaymentMethod}</p>
                     </div>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Payment Status</p>
+                    <p className={`text-lg font-bold mt-1 ${selectedOrder.paymentStatus === "paid" ? "text-green-600" : "text-orange-600"}`}>
+                      {selectedOrder.paymentStatus === "paid" ? "Paid" : "Unpaid"}
+                    </p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-sm text-gray-600">Table Number</p>

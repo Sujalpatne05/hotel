@@ -25,6 +25,7 @@ import AdminLogin from "./pages/AdminLogin";
 import SuperAdminLogin from "./pages/SuperAdminLogin";
 import Index from "./pages/Index";
 import Billing from "./pages/Billing";
+import BillSettlement from "./pages/BillSettlement";
 import Payroll from "./pages/Payroll";
 import Tasks from "./pages/Tasks";
 import MenuManagement from "./pages/MenuManagement";
@@ -107,6 +108,9 @@ const App = () => {
           <Route path="/superadmin-login" element={<SuperAdminLogin />} />
           <Route path="/billing" element={
             getRole() === "admin" ? <Billing /> : <AdminLogin />
+          } />
+          <Route path="/bill-settlement" element={
+            getRole() === "admin" ? <BillSettlement /> : <AdminLogin />
           } />
           <Route path="/payroll" element={
             getRole() === "admin" ? <Payroll /> : <AdminLogin />
