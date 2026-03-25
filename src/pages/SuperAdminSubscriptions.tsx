@@ -82,9 +82,9 @@ export default function SuperAdminSubscriptions() {
 
   const filteredSubs = useMemo(() => {
     return subscriptions.filter((sub) => {
-      const searchMatch =
-        sub.name.toLowerCase().includes(search.toLowerCase()) ||
-        sub.owner.toLowerCase().includes(search.toLowerCase());
+      const name = (sub.name || sub.restaurant_name || "").toLowerCase();
+      const owner = (sub.owner || "").toLowerCase();
+      const searchMatch = name.includes(search.toLowerCase()) || owner.includes(search.toLowerCase());
       const statusMatch = statusFilter === "all" || sub.status === statusFilter;
       return searchMatch && statusMatch;
     });
@@ -119,7 +119,7 @@ export default function SuperAdminSubscriptions() {
         ),
       );
       setRenewModal(false);
-      setFeedback(`${selectedSub.name} renewed successfully.`);
+      setFeedback(`${selectedSub?.name || selectedSub?.restaurant_name} renewed successfully.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to renew subscription");
     }
@@ -213,7 +213,7 @@ export default function SuperAdminSubscriptions() {
               <tbody>
                 {filteredSubs.map((sub) => (
                   <tr key={sub.id} className="border-t border-slate-100">
-                    <td className="px-4 py-3 font-semibold text-slate-900">{sub.name}</td>
+                    <td className="px-4 py-3 font-semibold text-slate-900">{sub.name || sub.restaurant_name || "—"}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{sub.owner}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${sub.plan === "Premium" ? "bg-sky-100 text-sky-700" : "bg-slate-100 text-slate-700"}`}>{sub.plan}</span>
@@ -262,7 +262,7 @@ export default function SuperAdminSubscriptions() {
             <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
               <h2 className="text-xl font-bold text-slate-900">Renew Subscription</h2>
               <p className="mt-2 text-sm text-slate-600">
-                Renew <span className="font-semibold">{selectedSub.name}</span> and reset status to active?
+                Renew <span className="font-semibold">{selectedSub?.name || selectedSub?.restaurant_name}</span> and reset status to active?
               </p>
               <div className="mt-5 flex justify-end gap-2">
                 <button className="min-h-11 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700" onClick={() => setRenewModal(false)}>

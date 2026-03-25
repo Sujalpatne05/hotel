@@ -103,8 +103,8 @@ export default function SuperAdminSupport() {
     return ticketList.filter((ticket) => {
       const statusMatch = statusFilter === "all" || ticket.status === statusFilter;
       const searchMatch =
-        ticket.subject.toLowerCase().includes(search.toLowerCase()) ||
-        ticket.restaurant.toLowerCase().includes(search.toLowerCase());
+        (ticket.subject || "").toLowerCase().includes(search.toLowerCase()) ||
+        (ticket.restaurant || "").toLowerCase().includes(search.toLowerCase());
       return statusMatch && searchMatch;
     });
   }, [ticketList, statusFilter, search]);
@@ -268,9 +268,9 @@ export default function SuperAdminSupport() {
                     </td>
                     <td className="px-4 py-3 text-slate-700">{ticket.assignee || "Unassigned"}</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${ticket.sla.includes("left") ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-700"}`}>
-                        {ticket.sla.includes("left") ? <Siren className="h-3.5 w-3.5" /> : <CheckCircle className="h-3.5 w-3.5" />}
-                        {ticket.sla}
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${(ticket.sla || "").includes("left") ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-700"}`}>
+                        {(ticket.sla || "").includes("left") ? <Siren className="h-3.5 w-3.5" /> : <CheckCircle className="h-3.5 w-3.5" />}
+                        {ticket.sla || "N/A"}
                       </span>
                     </td>
                     <td className="px-4 py-3">

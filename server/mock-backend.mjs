@@ -719,6 +719,11 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "GET" && path === "/superadmin/users") {
+      send(res, 200, users.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, restaurant_name: u.restaurant_name, is_active: u.is_active })));
+      return;
+    }
+
     if (req.method === "POST" && path === "/superadmin/users") {
       const body = await parseBody(req);
       if (!body.email || !body.name || !body.role) {
