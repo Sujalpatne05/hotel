@@ -152,9 +152,35 @@ export default function Reservations() {
         return;
       }
 
+      // Update table status to reserved
+      try {
+        const tableNumber = Number(form.tableNumber.trim().replace(/\D/g, ""));
+        if (Number.isFinite(tableNumber)) {
+          // Fetch tables to find the table ID
+          const tablesResponse = await fetch(`${API_BASE_URL}/tables`, { headers });
+          const tables = await tablesResponse.json();
+          const table = Array.isArray(tables) ? tables.find((t: any) => t.table_number === tableNumber || t.number === tableNumber) : null;
+          
+          if (table) {
+            await fetch(`${API_BASE_URL}/tables/${table.id}`, {
+              method: "PUT",
+              headers,
+              body: JSON.stringify({
+                status: "reserved",
+                reserved_by: form.name.trim(),
+                estimated_time: form.time,
+              }),
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to update table status:", err);
+        // Don't fail the reservation if table update fails
+      }
+
       setReservations((prev) => [toUiReservation(data), ...prev]);
       setForm({ name: "", phone: "", date: "", time: "", guests: "2", tableNumber: "" });
-      toast.success("Reservation created");
+      toast.success("Reservation created and table marked as reserved");
     } catch {
       setError("Unable to connect to backend.");
     } finally {
@@ -164,6 +190,8 @@ export default function Reservations() {
 
   const updateStatus = async (id: number, status: ReservationStatus) => {
     const previous = reservations;
+    const reservation = reservations.find(r => r.id === id);
+    
     setReservations((prev) => prev.map((reservation) => (reservation.id === id ? { ...reservation, status } : reservation)));
 
     try {
@@ -187,6 +215,45 @@ export default function Reservations() {
         setError(data?.error || "Unable to update reservation status.");
         return;
       }
+
+      // Update table status based on reservation status
+      if (reservation) {
+        try {
+          const tableNumber = Number(reservation.tableNumber.replace(/\D/g, ""));
+          if (Number.isFinite(tableNumber)) {
+            // Fetch tables to find the table ID
+            const tablesResponse = await fetch(`${API_BASE_URL}/tables`, { headers });
+            const tables = await tablesResponse.json();
+            const table = Array.isArray(tables) ? tables.find((t: any) => t.table_number === tableNumber || t.number === tableNumber) : null;
+            
+            if (table) {
+              let tableStatus = "available";
+              let tableData: any = { status: tableStatus };
+              
+              if (status === "seated") {
+                tableStatus = "occupied";
+                tableData = { status: tableStatus, reserved_by: null };
+              } else if (status === "cancelled") {
+                tableStatus = "available";
+                tableData = { status: tableStatus, reserved_by: null, estimated_time: null };
+              } else if (status === "confirmed" || status === "pending") {
+                tableStatus = "reserved";
+                tableData = { status: tableStatus, reserved_by: reservation.name, estimated_time: reservation.time };
+              }
+              
+              await fetch(`${API_BASE_URL}/tables/${table.id}`, {
+                method: "PUT",
+                headers,
+                body: JSON.stringify(tableData),
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Failed to update table status:", err);
+          // Don't fail the status update if table update fails
+        }
+      }
+
       toast.success("Reservation status updated");
     } catch {
       setReservations(previous);

@@ -65,10 +65,10 @@ const MenuManagement = () => {
     };
   };
 
-  const toUiItem = (item: { id: number; name: string; price: number; available: boolean; image_url?: string }, fallback?: Partial<MenuItem>): MenuItem => ({
+  const toUiItem = (item: { id: number; name: string; price: number; available: boolean; category?: string; image_url?: string }, fallback?: Partial<MenuItem>): MenuItem => ({
     id: item.id,
     name: item.name,
-    category: fallback?.category || "Beverages",
+    category: item.category || fallback?.category || "Beverages",
     price: Number(item.price),
     available: item.available,
     popular: fallback?.popular ?? false,
@@ -131,7 +131,9 @@ const MenuManagement = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     const checked = type === "checkbox" ? (e.target as HTMLInputElement).checked : false;
-    setNewItem((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    const newValue = type === "checkbox" ? checked : value;
+    console.log(`Field changed: ${name} = ${newValue}`);
+    setNewItem((prev) => ({ ...prev, [name]: newValue }));
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,16 +146,26 @@ const MenuManagement = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate category is selected
+    if (!newItem.category || newItem.category.trim() === "") {
+      setError("Please select a category");
+      return;
+    }
+    
     let imageUrl = newItem.image_url || "";
     if (imageFile) {
       imageUrl = await uploadImage(imageFile);
     }
     const payload = {
       name: newItem.name.trim(),
+      category: newItem.category.trim(),
       price: Number(newItem.price),
       available: newItem.available,
       image_url: imageUrl,
     };
+    
+    console.log("Submitting payload:", payload);
 
     try {
       setError("");
@@ -182,11 +194,7 @@ const MenuManagement = () => {
         return;
       }
 
-      const fallbackValues = {
-        category: newItem.category || "Beverages",
-        popular: false,
-      };
-      const savedItem = toUiItem(data, fallbackValues);
+      const savedItem = toUiItem(data);
       if (isEdit) {
         setMenuItems((prev) => prev.map((item) => (item.id === savedItem.id ? { ...item, ...savedItem } : item)));
       } else {
@@ -275,7 +283,7 @@ const MenuManagement = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Category</label>
-                        <select name="category" value={newItem.category} onChange={handleChange} required className="mt-1 block w-full border-gray-300 rounded-md shadow-sm">
+                        <select name="category" value={newItem.category} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary">
                           <option value="">Select category</option>
                           {categories.filter((cat) => cat !== "All").map((cat) => (
                             <option key={cat} value={cat}>{cat}</option>

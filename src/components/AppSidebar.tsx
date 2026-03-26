@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -30,10 +30,17 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getStoredRestaurantName } from "@/lib/session";
+import { getStoredRestaurantName, buildAuthHeaders } from "@/lib/session";
+
+const API_BASE_URL = (() => {
+  const configured = (import.meta.env.VITE_API_URL || "").trim();
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) return "/api";
+  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+})();
 
 const menuGroups = [
   {
@@ -85,6 +92,32 @@ export function AppSidebar() {
   const userRole = localStorage.getItem("userRole");
   const isMobile = useIsMobile();
   const restaurantName = getStoredRestaurantName();
+  const [logo, setLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const headers = buildAuthHeaders();
+        if (!headers) return;
+
+        const profileRes = await fetch(`${API_BASE_URL}/profile`, { headers });
+        const profileData = await profileRes.json();
+        
+        if (profileData?.restaurantLogo) {
+          console.log("✅ Logo fetched from profile");
+          setLogo(profileData.restaurantLogo);
+        } else {
+          console.log("❌ No logo in profile, using default");
+          setLogo("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23FF6B35' width='100' height='100'/%3E%3Ctext x='50' y='50' font-size='40' fill='white' text-anchor='middle' dy='.3em'%3E🍽️%3C/text%3E%3C/svg%3E");
+        }
+      } catch (e) {
+        console.error("Failed to fetch logo:", e);
+        setLogo("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23FF6B35' width='100' height='100'/%3E%3Ctext x='50' y='50' font-size='40' fill='white' text-anchor='middle' dy='.3em'%3E🍽️%3C/text%3E%3C/svg%3E");
+      }
+    };
+
+    fetchLogo();
+  }, []);
 
   // Swipe gesture for mobile sidebar
   React.useEffect(() => {
@@ -108,14 +141,17 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-3">
-          <div className="gradient-warm rounded-lg p-2">
-            <ChefHat className="h-5 w-5 text-primary-foreground" />
-          </div>
+        <div className="flex flex-col items-center gap-3">
+          {logo && (
+            <img 
+              src={logo} 
+              alt="Restaurant Logo" 
+              className="h-16 w-16 rounded-lg flex-shrink-0"
+            />
+          )}
           {!collapsed && (
-            <div>
-              <h1 className="text-base font-bold text-sidebar-primary-foreground">RestroHub</h1>
-              <p className="text-xs text-sidebar-foreground/60">
+            <div className="text-center">
+              <p className="text-sm font-semibold text-sidebar-foreground">
                 {userRole === "admin" && restaurantName ? restaurantName : "Management System"}
               </p>
             </div>
@@ -153,6 +189,19 @@ export function AppSidebar() {
           </SidebarGroup>
         ))}
       </SidebarContent>
+
+      <SidebarFooter className="p-4">
+        {!collapsed && (
+          <div className="text-center border-t border-sidebar-border pt-3">
+            <p className="text-xs text-sidebar-foreground/60">
+              Created by <span className="font-semibold">RestroHub</span>
+            </p>
+            <p className="text-xs text-sidebar-foreground/50 mt-1">
+              © {new Date().getFullYear()}
+            </p>
+          </div>
+        )}
+      </SidebarFooter>
     </Sidebar>
   );
 }

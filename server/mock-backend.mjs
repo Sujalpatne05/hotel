@@ -13,12 +13,12 @@ let nextTableId = 5007;
 const profile = { id: 1, name: "Demo Admin", role: "admin" };
 
 const menu = [
-  { id: 1, name: "Butter Chicken", price: 350, available: true, image_url: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=400&q=80" },
-  { id: 2, name: "Paneer Tikka", price: 280, available: true, image_url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
-  { id: 3, name: "Garlic Naan", price: 60, available: true, image_url: "https://images.unsplash.com/photo-1585238341710-4b4e6cefc068?auto=format&fit=crop&w=400&q=80" },
-  { id: 4, name: "Jeera Rice", price: 180, available: true, image_url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80" },
-  { id: 5, name: "Masala Chai", price: 80, available: true, image_url: "https://images.unsplash.com/photo-1597318972826-c0e0c1e8e8c0?auto=format&fit=crop&w=400&q=80" },
-  { id: 6, name: "Gulab Jamun", price: 120, available: true, image_url: "https://images.unsplash.com/photo-1585518419759-8f0c4e4b7e8c?auto=format&fit=crop&w=400&q=80" },
+  { id: 1, name: "Butter Chicken", category: "Main Course", price: 350, available: true, image_url: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=400&q=80" },
+  { id: 2, name: "Paneer Tikka", category: "Starters", price: 280, available: true, image_url: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80" },
+  { id: 3, name: "Garlic Naan", category: "Breads", price: 60, available: true, image_url: "https://images.unsplash.com/photo-1585238341710-4b4e6cefc068?auto=format&fit=crop&w=400&q=80" },
+  { id: 4, name: "Jeera Rice", category: "Rice", price: 180, available: true, image_url: "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80" },
+  { id: 5, name: "Masala Chai", category: "Beverages", price: 80, available: true, image_url: "https://images.unsplash.com/photo-1597318972826-c0e0c1e8e8c0?auto=format&fit=crop&w=400&q=80" },
+  { id: 6, name: "Gulab Jamun", category: "Desserts", price: 120, available: true, image_url: "https://images.unsplash.com/photo-1585518419759-8f0c4e4b7e8c?auto=format&fit=crop&w=400&q=80" },
 ];
 
 const orders = [
@@ -116,12 +116,10 @@ const systemSettings = [
   { id: 3, setting_key: "Auto Backups", description: "Daily backups for restaurant data", enabled: true },
 ];
 
-const subscriptions = [
-  { id: 1, restaurant_id: 1, restaurant_name: "Demo Restaurant", owner: "Platform Team", plan: "Standard", status: "Active", expiry_date: "2026-06-23" },
-];
+const subscriptions = [];
 
 const restaurants = [
-  { id: 1, name: "Demo Restaurant", owner: "Platform Team", city: "Delhi", status: "Active", plan: "Standard", created_at: new Date().toISOString() },
+  { id: 1, name: "Demo Restaurant", owner: "Platform Team", city: "Delhi", status: "Active", plan: "Standard", logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23FF6B35' width='100' height='100'/%3E%3Ctext x='50' y='50' font-size='40' fill='white' text-anchor='middle' dy='.3em'%3E🍽️%3C/text%3E%3C/svg%3E", created_at: new Date().toISOString() },
 ];
 
 const users = [
@@ -177,6 +175,46 @@ const parseBody = (req) =>
     });
     req.on("error", reject);
   });
+
+// Initialize subscriptions for existing restaurants on server start
+function initializeSubscriptions() {
+  subscriptions.length = 0; // Clear existing subscriptions
+  
+  restaurants.forEach(restaurant => {
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+    
+    // Calculate exactly 1 year from today
+    const nextYear = year + 1;
+    const oneYearFromNowStr = `${nextYear}-${month}-${day}`;
+    
+    console.log(`[INIT] Restaurant: ${restaurant.name}, Today: ${todayStr}, OneYearFromNow: ${oneYearFromNowStr}`);
+    
+    subscriptions.push({
+      id: subscriptions.length + 1,
+      restaurant_id: restaurant.id,
+      restaurant_name: restaurant.name,
+      name: restaurant.name,
+      owner: restaurant.owner,
+      plan: restaurant.plan,
+      status: "Active",
+      expiry_date: oneYearFromNowStr,
+      expiry: oneYearFromNowStr,
+      created_at: todayStr,
+      subscription_date: todayStr,
+      start_date: todayStr,
+      mrr: restaurant.plan === "Premium" ? "₹5,000" : "₹2,500",
+      overdue_days: 0,
+    });
+  });
+}
+
+// Initialize subscriptions on startup
+initializeSubscriptions();
 
 const server = createServer(async (req, res) => {
   if (!req.url || !req.method) {
@@ -254,7 +292,32 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/profile") {
-      send(res, 200, profile);
+      // Extract user email from token or session
+      // For now, we'll return the restaurant based on the Authorization header
+      // In a real app, this would decode the JWT token
+      const authHeader = req.headers.authorization || "";
+      
+      // Find the user's restaurant - for demo, we'll check all users and return their restaurant
+      // Get the first admin user's restaurant (this is a simplified approach)
+      let userRestaurant = null;
+      let restaurantId = 1;
+      
+      // Try to find a restaurant that matches the logged-in user
+      // For now, return the most recently created restaurant (highest ID)
+      if (restaurants.length > 0) {
+        const maxRestaurant = restaurants.reduce((max, r) => r.id > max.id ? r : max);
+        userRestaurant = maxRestaurant;
+        restaurantId = maxRestaurant.id;
+      } else {
+        userRestaurant = restaurants.find(r => r.id === 1);
+      }
+      
+      send(res, 200, {
+        ...profile,
+        restaurantId: restaurantId,
+        restaurantName: userRestaurant?.name || "Demo Restaurant",
+        restaurantLogo: userRestaurant?.logo || null,
+      });
       return;
     }
 
@@ -294,6 +357,7 @@ const server = createServer(async (req, res) => {
       const item = {
         id: nextMenuId++,
         name: String(body.name).trim(),
+        category: String(body.category || "Beverages"),
         price: Number(body.price),
         available: body.available !== false,
         image_url: String(body.image_url || ""),
@@ -312,6 +376,7 @@ const server = createServer(async (req, res) => {
       }
       const body = await parseBody(req);
       if (body.name !== undefined) item.name = String(body.name).trim();
+      if (body.category !== undefined) item.category = String(body.category);
       if (body.price !== undefined) item.price = Number(body.price);
       if (body.available !== undefined) item.available = Boolean(body.available);
       if (body.image_url !== undefined) item.image_url = String(body.image_url || "");
@@ -667,6 +732,7 @@ const server = createServer(async (req, res) => {
         city: String(body.city || ""),
         status: String(body.status || "Active"),
         plan: String(body.plan || "Standard"),
+        logo: body.logo || null,
         created_at: new Date().toISOString(),
       };
       restaurants.push(restaurant);
@@ -694,16 +760,43 @@ const server = createServer(async (req, res) => {
       console.log(`[RESTAURANT] Total users now: ${users.length}`);
       
       // Also create a subscription for the new restaurant
+      const subscriptionStartDate = body.subscriptionStartDate || new Date().toISOString().split('T')[0];
+      let subscriptionExpiryDate = body.subscriptionExpiryDate;
+      
+      console.log(`[SUBSCRIPTION] Received from form - Start: ${body.subscriptionStartDate}, Expiry: ${body.subscriptionExpiryDate}`);
+      
+      // If no expiry date provided, calculate 1 year from start date
+      if (!subscriptionExpiryDate) {
+        // Parse the start date string (YYYY-MM-DD) safely
+        const [year, month, day] = subscriptionStartDate.split('-').map(Number);
+        // Create expiry date by adding 1 year to the date components
+        const expiryYear = year + 1;
+        const expiryMonth = String(month).padStart(2, '0');
+        const expiryDay = String(day).padStart(2, '0');
+        subscriptionExpiryDate = `${expiryYear}-${expiryMonth}-${expiryDay}`;
+      }
+      
+      console.log(`[SUBSCRIPTION] Final - Start Date: ${subscriptionStartDate}, Expiry Date: ${subscriptionExpiryDate}`);
+      
       const subscription = {
         id: Math.max(...subscriptions.map(s => s.id), 0) + 1,
         restaurant_id: restaurant.id,
         restaurant_name: restaurant.name,
+        name: restaurant.name,
         owner: restaurant.owner,
         plan: restaurant.plan,
         status: "Active",
-        expiry_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        expiry_date: subscriptionExpiryDate,
+        expiry: subscriptionExpiryDate,
+        created_at: subscriptionStartDate,
+        subscription_date: subscriptionStartDate,
+        start_date: subscriptionStartDate,
+        mrr: restaurant.plan === "Premium" ? "₹5,000" : "₹2,500",
+        overdue_days: 0,
       };
       subscriptions.push(subscription);
+      
+      console.log(`[SUBSCRIPTION] ✅ Created subscription for ${restaurant.name}: Start: ${subscriptionStartDate}, Expiry: ${subscriptionExpiryDate}`);
       
       send(res, 201, {
         ...restaurant,
@@ -714,8 +807,81 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "PUT" && path.startsWith("/superadmin/restaurants/")) {
+      const parts = path.split("/");
+      const id = parseInt(parts[parts.length - 1]);
+      
+      if (isNaN(id)) {
+        send(res, 400, { error: "Invalid restaurant ID" });
+        return;
+      }
+      
+      const body = await parseBody(req);
+      const restaurant = restaurants.find(r => r.id === id);
+      
+      if (!restaurant) {
+        send(res, 404, { error: "Restaurant not found" });
+        return;
+      }
+      
+      if (body.name) restaurant.name = String(body.name).trim();
+      if (body.owner) restaurant.owner = String(body.owner).trim();
+      if (body.city !== undefined) restaurant.city = String(body.city || "");
+      if (body.status) restaurant.status = String(body.status);
+      if (body.plan) restaurant.plan = String(body.plan);
+      if (body.logo !== undefined) restaurant.logo = body.logo || null;
+      
+      send(res, 200, restaurant);
+      return;
+    }
+
+    if (req.method === "DELETE" && path.startsWith("/superadmin/restaurants/")) {
+      const parts = path.split("/");
+      const id = parseInt(parts[parts.length - 1]);
+      
+      if (isNaN(id)) {
+        send(res, 400, { error: "Invalid restaurant ID" });
+        return;
+      }
+      
+      const index = restaurants.findIndex(r => r.id === id);
+      if (index === -1) {
+        send(res, 404, { error: "Restaurant not found" });
+        return;
+      }
+      
+      restaurants.splice(index, 1);
+      send(res, 200, { success: true, message: "Restaurant deleted" });
+      return;
+    }
+
     if (req.method === "GET" && path === "/superadmin/subscriptions") {
       send(res, 200, subscriptions);
+      return;
+    }
+
+    if (req.method === "PATCH" && path.startsWith("/superadmin/subscriptions/")) {
+      const id = Number(path.split("/").pop());
+      const body = await parseBody(req);
+      const subscription = subscriptions.find(s => s.id === id);
+      
+      if (!subscription) {
+        send(res, 404, { error: "Subscription not found" });
+        return;
+      }
+      
+      if (body.status) subscription.status = String(body.status);
+      if (body.expiry) {
+        subscription.expiry = String(body.expiry);
+        subscription.expiry_date = String(body.expiry);
+      }
+      if (body.expiry_date) {
+        subscription.expiry_date = String(body.expiry_date);
+        subscription.expiry = String(body.expiry_date);
+      }
+      
+      console.log(`[SUBSCRIPTION] ✅ Updated subscription ${id}: Status: ${subscription.status}, Expiry: ${subscription.expiry}`);
+      send(res, 200, subscription);
       return;
     }
 

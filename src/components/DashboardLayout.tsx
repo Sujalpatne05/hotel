@@ -2,10 +2,39 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { NotificationBell, ThemeToggle, AISuggestionPanel } from "@/components/StatCard";
 import { UserCog } from "lucide-react";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { buildAuthHeaders } from "@/lib/session";
+
+const API_BASE_URL = (() => {
+  const configured = (import.meta.env.VITE_API_URL || "").trim();
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) return "/api";
+  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+})();
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const [logo, setLogo] = useState<string>("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23FF6B35' width='100' height='100'/%3E%3Ctext x='50' y='50' font-size='40' fill='white' text-anchor='middle' dy='.3em'%3E🍽️%3C/text%3E%3C/svg%3E");
+
+  useEffect(() => {
+    const fetchLogo = async () => {
+      try {
+        const headers = buildAuthHeaders();
+        if (!headers) return;
+
+        const profileRes = await fetch(`${API_BASE_URL}/profile`, { headers });
+        const profileData = await profileRes.json();
+        
+        if (profileData?.restaurantLogo) {
+          setLogo(profileData.restaurantLogo);
+        }
+      } catch (e) {
+        console.error("Failed to fetch logo:", e);
+      }
+    };
+
+    fetchLogo();
+  }, []);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">

@@ -81,8 +81,6 @@ export default function KitchenDisplay() {
   const silentRedirected = useRef(false);
   const [orders, setOrders] = useState<KitchenOrder[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [filterStation, setFilterStation] = useState<string>("all");
-  const [statusView, setStatusView] = useState<"active" | "served" | "all">("active");
   const [loading, setLoading] = useState(true);
 
   const goToLogin = (message = "Session expired. Please login again.") => {
@@ -237,19 +235,8 @@ export default function KitchenDisplay() {
   };
 
   const filteredOrders = orders
-    .filter((order) => {
-      if (statusView === "active") return order.status !== "served";
-      if (statusView === "served") return order.status === "served";
-      return true;
-    })
-    .filter(order => {
-      if (filterStation === "all") return true;
-      return order.items.some(item => item.station === filterStation);
-    })
+    .filter((order) => order.status !== "served" && order.status !== "completed")
     .sort((a, b) => {
-      if (statusView === "served") {
-        return b.timestamp.getTime() - a.timestamp.getTime();
-      }
       if (a.priority === "urgent" && b.priority !== "urgent") return -1;
       if (a.priority !== "urgent" && b.priority === "urgent") return 1;
       return a.timestamp.getTime() - b.timestamp.getTime();
@@ -271,9 +258,6 @@ export default function KitchenDisplay() {
             <p className="text-gray-600 mt-1">All backend orders are shown here automatically</p>
             <p className="text-sm text-gray-500 mt-1">Current Time: {currentTime.toLocaleTimeString()}</p>
           </div>
-          <Button variant="outline" onClick={() => loadOrders()}>
-            Refresh Orders
-          </Button>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -309,20 +293,6 @@ export default function KitchenDisplay() {
               <div className="text-2xl font-bold text-gray-600">{stats.served}</div>
             </CardContent>
           </Card>
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          <Button variant={statusView === "active" ? "default" : "outline"} size="sm" onClick={() => setStatusView("active")}>Active</Button>
-          <Button variant={statusView === "served" ? "default" : "outline"} size="sm" onClick={() => setStatusView("served")}>Served</Button>
-          <Button variant={statusView === "all" ? "default" : "outline"} size="sm" onClick={() => setStatusView("all")}>All</Button>
-        </div>
-
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          <Button variant={filterStation === "all" ? "default" : "outline"} size="sm" onClick={() => setFilterStation("all")}>All Stations</Button>
-          <Button variant={filterStation === "hot" ? "default" : "outline"} size="sm" onClick={() => setFilterStation("hot")}><Flame className="h-4 w-4 mr-2" />Hot</Button>
-          <Button variant={filterStation === "cold" ? "default" : "outline"} size="sm" onClick={() => setFilterStation("cold")}><Snowflake className="h-4 w-4 mr-2" />Cold</Button>
-          <Button variant={filterStation === "grill" ? "default" : "outline"} size="sm" onClick={() => setFilterStation("grill")}><ChefHat className="h-4 w-4 mr-2" />Grill</Button>
-          <Button variant={filterStation === "bar" ? "default" : "outline"} size="sm" onClick={() => setFilterStation("bar")}>Bar</Button>
         </div>
 
         {loading ? (
@@ -406,9 +376,7 @@ export default function KitchenDisplay() {
           <Card>
             <CardContent className="py-12 text-center">
               <ChefHat className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-500">
-                {statusView === "served" ? "No served orders found" : statusView === "all" ? "No orders found" : "No active orders in kitchen"}
-              </p>
+              <p className="text-gray-500">No active orders in kitchen</p>
             </CardContent>
           </Card>
         )}

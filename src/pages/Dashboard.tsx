@@ -46,7 +46,7 @@ export default function Dashboard() {
         setTables(Array.isArray(tablesData) ? tablesData : []);
         setInventory(Array.isArray(inventoryData) ? inventoryData : []);
       } catch (e) {
-        console.error(e);
+        console.error("❌ Dashboard load error:", e);
       } finally {
         setLoading(false);
       }
@@ -118,9 +118,11 @@ export default function Dashboard() {
 
         {/* Header */}
         <div className="rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold mb-1">Welcome back, SUJAL CAFE!</h1>
-            <p className="text-orange-100 text-sm">Here's your restaurant at a glance — {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold mb-1">Welcome back, SUJAL CAFE!</h1>
+              <p className="text-orange-100 text-sm">Here's your restaurant at a glance — {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
+            </div>
           </div>
           <ChefHat className="h-16 w-16 text-orange-200 hidden sm:block" />
         </div>

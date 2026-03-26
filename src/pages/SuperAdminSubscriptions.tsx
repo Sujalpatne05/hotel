@@ -20,9 +20,13 @@ type Subscription = {
   owner: string;
   plan: "Premium" | "Standard";
   status: SubscriptionStatus;
-  expiry: string;
+  expiry: string; // Now formatted as DD-MM-YYYY
   mrr: string;
   overdueDays: number;
+  restaurant_name?: string;
+  subscription_date?: string; // Now formatted as DD-MM-YYYY
+  start_date?: string; // Now formatted as DD-MM-YYYY
+  created_at?: string;
 };
 
 type SubscriptionApiRow = {
@@ -34,6 +38,8 @@ type SubscriptionApiRow = {
   expiry: string;
   mrr: string;
   overdue_days: number;
+  subscription_date?: string;
+  created_at?: string;
 };
 
 function statusBadge(status: SubscriptionStatus) {
@@ -52,6 +58,14 @@ export default function SuperAdminSubscriptions() {
   const [renewModal, setRenewModal] = useState(false);
   const [selectedSub, setSelectedSub] = useState<Subscription | null>(null);
   const [feedback, setFeedback] = useState("");
+  const [detailModal, setDetailModal] = useState(false);
+
+  const formatDate = (dateStr: string | undefined): string => {
+    if (!dateStr) return "—";
+    // Convert YYYY-MM-DD to DD-MM-YYYY
+    const [year, month, day] = dateStr.split('-');
+    return `${day}-${month}-${year}`;
+  };
 
   const loadSubscriptions = async () => {
     setLoading(true);
@@ -62,11 +76,13 @@ export default function SuperAdminSubscriptions() {
         id: row.id,
         name: row.name,
         owner: row.owner,
-        plan: row.plan === "Premium" ? "Premium" : "Standard",
-        status: ["Active", "Grace", "Suspended", "Inactive"].includes(row.status) ? (row.status as SubscriptionStatus) : "Inactive",
-        expiry: row.expiry,
+        plan: (row.plan === "Premium" ? "Premium" : "Standard") as "Premium" | "Standard",
+        status: (["Active", "Grace", "Suspended", "Inactive"].includes(row.status) ? row.status : "Inactive") as SubscriptionStatus,
+        expiry: formatDate(row.expiry),
         mrr: row.mrr,
         overdueDays: Number(row.overdue_days || 0),
+        subscription_date: formatDate(row.subscription_date || row.created_at),
+        start_date: formatDate(row.subscription_date || row.created_at),
       }));
       setSubscriptions(normalized);
     } catch (err) {
@@ -103,19 +119,24 @@ export default function SuperAdminSubscriptions() {
     setFeedback("");
   };
 
+  const handleViewDetails = (subscription: Subscription) => {
+    setSelectedSub(subscription);
+    setDetailModal(true);
+  };
+
   const confirmRenew = async () => {
     if (!selectedSub) return;
     const nextExpiry = new Date();
     nextExpiry.setFullYear(nextExpiry.getFullYear() + 1);
-    const expiry = nextExpiry.toISOString().slice(0, 10);
+    const expiryStr = nextExpiry.toISOString().slice(0, 10); // YYYY-MM-DD format for backend
     try {
       await apiRequest(`/superadmin/subscriptions/${selectedSub.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ status: "Active", expiry }),
+        body: JSON.stringify({ status: "Active", expiry: expiryStr }),
       });
       setSubscriptions((current) =>
         current.map((subscription) =>
-          subscription.id === selectedSub.id ? { ...subscription, expiry, status: "Active", overdueDays: 0 } : subscription,
+          subscription.id === selectedSub.id ? { ...subscription, expiry: formatDate(expiryStr), status: "Active", overdueDays: 0 } : subscription,
         ),
       );
       setRenewModal(false);
@@ -203,8 +224,8 @@ export default function SuperAdminSubscriptions() {
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Restaurant</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Owner</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Plan</th>
-                  <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">MRR</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Status</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Start Date</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Expiry</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Risk</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Actions</th>
@@ -218,13 +239,13 @@ export default function SuperAdminSubscriptions() {
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${sub.plan === "Premium" ? "bg-sky-100 text-sky-700" : "bg-slate-100 text-slate-700"}`}>{sub.plan}</span>
                     </td>
-                    <td className="px-4 py-3 text-sm font-semibold text-slate-700">{sub.mrr}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${statusBadge(sub.status)}`}>
                         {sub.status === "Active" ? <BadgeCheck className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
                         {sub.status}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{sub.subscription_date}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{sub.expiry}</td>
                     <td className="px-4 py-3">
                       {sub.overdueDays > 0 ? (
@@ -238,14 +259,11 @@ export default function SuperAdminSubscriptions() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex min-h-10 items-center gap-2 text-xs font-semibold">
+                        <button className="rounded-md bg-slate-100 px-2 py-1.5 text-slate-700 hover:bg-slate-200" onClick={() => handleViewDetails(sub)}>
+                          Details
+                        </button>
                         <button className="inline-flex items-center gap-1 rounded-md bg-sky-100 px-2 py-1.5 text-sky-700 hover:bg-sky-200" onClick={() => handleRenew(sub)}>
                           <RefreshCw className="h-3.5 w-3.5" /> Renew
-                        </button>
-                        <button className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-1.5 text-amber-700 hover:bg-amber-200" onClick={() => void updateStatus(sub, "Grace", 3)}>
-                          <AlertTriangle className="h-3.5 w-3.5" /> Grace
-                        </button>
-                        <button className="inline-flex items-center gap-1 rounded-md bg-red-100 px-2 py-1.5 text-red-700 hover:bg-red-200" onClick={() => void updateStatus(sub, "Suspended", 15)}>
-                          <PauseCircle className="h-3.5 w-3.5" /> Suspend
                         </button>
                       </div>
                     </td>
@@ -270,6 +288,63 @@ export default function SuperAdminSubscriptions() {
                 </button>
                 <button className="min-h-11 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800" onClick={confirmRenew}>
                   Confirm Renew
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {detailModal && selectedSub && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3">
+            <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+              <h2 className="text-xl font-bold text-slate-900">Subscription Details</h2>
+              <div className="mt-4 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-slate-500">Restaurant Name</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">{selectedSub.name || selectedSub.restaurant_name || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-slate-500">Owner</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">{selectedSub.owner}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-slate-500">Plan</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">{selectedSub.plan}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-slate-500">Status</p>
+                    <p className={`mt-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${statusBadge(selectedSub.status)}`}>
+                      {selectedSub.status === "Active" ? <BadgeCheck className="h-3.5 w-3.5" /> : <XCircle className="h-3.5 w-3.5" />}
+                      {selectedSub.status}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-slate-500">Subscription Start Date</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">{selectedSub.subscription_date}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-slate-500">Expiry Date</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">{selectedSub.expiry}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-slate-500">MRR</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">{selectedSub.mrr || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-slate-500">Overdue Days</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">{selectedSub.overdueDays > 0 ? selectedSub.overdueDays : "0"}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end gap-2">
+                <button className="min-h-11 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700" onClick={() => setDetailModal(false)}>
+                  Close
                 </button>
               </div>
             </div>

@@ -29,6 +29,9 @@ type Restaurant = {
   plan: "Premium" | "Standard";
   city: string;
   created_at?: string;
+  logo?: string;
+  subscriptionStartDate?: string;
+  subscriptionExpiryDate?: string;
 };
 
 function getHealthTone(score: number) {
@@ -56,13 +59,24 @@ export default function SuperAdminRestaurants() {
   const [search, setSearch] = useState("");
   const [planFilter, setPlanFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [form, setForm] = useState({
-    name: "",
-    owner: "",
-    city: "",
-    plan: "Standard" as "Premium" | "Standard",
-    status: "Active" as "Active" | "Inactive",
+  const [form, setForm] = useState(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const [year, month, day] = today.split('-').map(Number);
+    const oneYearFromNow = `${year + 1}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    return {
+      name: "",
+      owner: "",
+      city: "",
+      plan: "Standard" as "Premium" | "Standard",
+      status: "Active" as "Active" | "Inactive",
+      logo: "" as string,
+      subscriptionStartDate: today,
+      subscriptionExpiryDate: oneYearFromNow,
+    };
   });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
   const [quickAdminEnabled, setQuickAdminEnabled] = useState(true);
   const [secondAdminEnabled, setSecondAdminEnabled] = useState(false);
   const [adminOneForm, setAdminOneForm] = useState({ name: "", email: "", temporaryPassword: "" });
@@ -135,10 +149,40 @@ export default function SuperAdminRestaurants() {
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
+  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setLogoPreview(base64);
+        setForm((prev) => ({ ...prev, logo: base64 }));
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
   function closeModal() {
     setShowModal(false);
     setEditId(null);
-    setForm({ name: "", owner: "", city: "", plan: "Standard", status: "Active" });
+    
+    const today = new Date().toISOString().split('T')[0];
+    const [year, month, day] = today.split('-').map(Number);
+    const oneYearFromNow = `${year + 1}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    setForm({ 
+      name: "", 
+      owner: "", 
+      city: "", 
+      plan: "Standard", 
+      status: "Active", 
+      logo: "",
+      subscriptionStartDate: today,
+      subscriptionExpiryDate: oneYearFromNow,
+    });
+    setLogoFile(null);
+    setLogoPreview("");
     setQuickAdminEnabled(true);
     setSecondAdminEnabled(false);
     setAdminOneForm({ name: "", email: "", temporaryPassword: "" });
@@ -212,6 +256,9 @@ export default function SuperAdminRestaurants() {
           city: form.city.trim(),
           plan: form.plan,
           status: "Active",
+          logo: form.logo || null,
+          subscriptionStartDate: form.subscriptionStartDate,
+          subscriptionExpiryDate: form.subscriptionExpiryDate,
         }),
       });
       const createData = await createResponse.json();
@@ -279,7 +326,11 @@ export default function SuperAdminRestaurants() {
       city: selected.city,
       plan: selected.plan,
       status: selected.status,
+      logo: selected.logo || "",
+      subscriptionStartDate: selected.subscriptionStartDate || new Date().toISOString().split('T')[0],
+      subscriptionExpiryDate: selected.subscriptionExpiryDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     });
+    setLogoPreview(selected.logo || "");
     setEditId(id);
     setShowModal(true);
   }
@@ -305,6 +356,9 @@ export default function SuperAdminRestaurants() {
           city: form.city.trim(),
           plan: form.plan,
           status: form.status,
+          logo: form.logo || null,
+          subscriptionStartDate: form.subscriptionStartDate,
+          subscriptionExpiryDate: form.subscriptionExpiryDate,
         }),
       });
       const data = await response.json();
@@ -452,6 +506,7 @@ export default function SuperAdminRestaurants() {
             <table className="w-full min-w-[850px] text-left">
               <thead className="bg-slate-50">
                 <tr>
+                  <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Logo</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Restaurant</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Owner</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Plan</th>
@@ -464,7 +519,7 @@ export default function SuperAdminRestaurants() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td className="px-4 py-5 text-sm text-slate-500" colSpan={7}>Loading restaurants...</td>
+                    <td className="px-4 py-5 text-sm text-slate-500" colSpan={8}>Loading restaurants...</td>
                   </tr>
                 ) : (
                   filteredRestaurants.map((restaurant) => {
@@ -472,6 +527,15 @@ export default function SuperAdminRestaurants() {
                     const activeUsers = estimateUsers(restaurant);
                     return (
                       <tr key={restaurant.id} className="border-t border-slate-100">
+                        <td className="px-4 py-3">
+                          <div className="w-16 h-16 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden border border-slate-200 flex-shrink-0">
+                            {restaurant.logo ? (
+                              <img src={restaurant.logo} alt={restaurant.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <Building className="h-8 w-8 text-slate-400" />
+                            )}
+                          </div>
+                        </td>
                         <td className="px-4 py-3">
                           <div className="font-semibold text-slate-900">{restaurant.name}</div>
                           <div className="text-xs text-slate-500">{restaurant.city}</div>
@@ -566,6 +630,40 @@ export default function SuperAdminRestaurants() {
                     <option value="Premium">Premium</option>
                     <option value="Standard">Standard</option>
                   </select>
+                </label>
+              </div>
+
+              <label className="block">
+                <span className="mb-1 block text-sm font-semibold text-slate-700">Restaurant Logo</span>
+                <input type="file" accept="image/*" className="w-full rounded-lg border border-slate-300 px-3 py-3 text-sm" onChange={handleLogoChange} />
+                {logoPreview && (
+                  <div className="mt-2 flex items-center gap-3">
+                    <img src={logoPreview} alt="Logo Preview" className="h-16 w-16 rounded-lg object-cover border border-slate-200" />
+                    <span className="text-xs text-slate-500">Logo preview</span>
+                  </div>
+                )}
+              </label>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-1 block text-sm font-semibold text-slate-700">Subscription Start Date</span>
+                  <input 
+                    type="date" 
+                    name="subscriptionStartDate" 
+                    className="w-full rounded-lg border border-slate-300 px-3 py-3 text-sm" 
+                    value={form.subscriptionStartDate} 
+                    onChange={handleInput} 
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-1 block text-sm font-semibold text-slate-700">Subscription Expiry Date</span>
+                  <input 
+                    type="date" 
+                    name="subscriptionExpiryDate" 
+                    className="w-full rounded-lg border border-slate-300 px-3 py-3 text-sm" 
+                    value={form.subscriptionExpiryDate} 
+                    onChange={handleInput} 
+                  />
                 </label>
               </div>
 

@@ -34,11 +34,20 @@ const BillSettlement: React.FC = () => {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<typeof PAYMENT_METHODS[number]>("cash");
   const [processingOrderId, setProcessingOrderId] = useState<number | null>(null);
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
 
   // Fetch orders and tables
   useEffect(() => {
     fetchOrders();
     fetchTables();
+    
+    // Auto-refresh every 10 seconds
+    const interval = setInterval(() => {
+      fetchOrders();
+      fetchTables();
+    }, 10000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const fetchOrders = async () => {
@@ -118,39 +127,12 @@ const BillSettlement: React.FC = () => {
       <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-orange-100 p-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="mb-8 flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-orange-700 flex items-center gap-2 mb-2">
-                <CreditCard className="text-orange-500" /> Bill Settlement
-              </h1>
-              <p className="text-muted-foreground">Collect payments from completed dine-in orders</p>
-            </div>
-            <Button onClick={fetchOrders} variant="outline" className="mt-2">
-              Refresh Orders
-            </Button>
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-orange-700 flex items-center gap-2 mb-2">
+              <CreditCard className="text-orange-500" /> Bill Settlement
+            </h1>
+            <p className="text-muted-foreground">Collect payments from completed dine-in orders</p>
           </div>
-
-          {/* Payment Method Selection */}
-          <Card className="mb-6 bg-white/90 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-lg">Select Payment Method</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-3">
-                {PAYMENT_METHODS.map((method) => (
-                  <Button
-                    key={method}
-                    size="lg"
-                    variant={selectedPaymentMethod === method ? "default" : "outline"}
-                    onClick={() => setSelectedPaymentMethod(method)}
-                    className="capitalize"
-                  >
-                    {method.toUpperCase()}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Orders List */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -163,8 +145,13 @@ const BillSettlement: React.FC = () => {
             ) : (
               orders.map((order) => {
                 const tableInfo = getTableInfo(order.table_number);
+                const isExpanded = expandedOrderId === order.id;
                 return (
-                  <Card key={order.id} className="bg-white/90 shadow-lg border-orange-100 hover:shadow-xl transition-all">
+                  <Card 
+                    key={order.id} 
+                    className="bg-white/90 shadow-lg border-orange-100 hover:shadow-xl transition-all cursor-pointer"
+                    onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                  >
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <div>
@@ -203,10 +190,36 @@ const BillSettlement: React.FC = () => {
                         </div>
                       </div>
 
+                      {/* Payment Method Selection - Shows when expanded */}
+                      {isExpanded && (
+                        <div className="mb-4 pb-4 border-t pt-4">
+                          <p className="font-semibold text-sm mb-3">Select Payment Method:</p>
+                          <div className="flex gap-2 mb-4">
+                            {PAYMENT_METHODS.map((method) => (
+                              <Button
+                                key={method}
+                                size="sm"
+                                variant={selectedPaymentMethod === method ? "default" : "outline"}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedPaymentMethod(method);
+                                }}
+                                className="capitalize flex-1"
+                              >
+                                {method.toUpperCase()}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Payment Button */}
                       <Button
                         className="w-full bg-green-500 hover:bg-green-600"
-                        onClick={() => handlePayment(order.id, order.table_number)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePayment(order.id, order.table_number);
+                        }}
                         disabled={processingOrderId === order.id}
                       >
                         {processingOrderId === order.id ? (

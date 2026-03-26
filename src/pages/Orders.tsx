@@ -85,16 +85,9 @@ export default function Orders() {
       }
 
       const mapped = (Array.isArray(data) ? data : []).map((order: ApiOrder) => {
-        // For dine-in orders, only show as "completed" if payment is taken
-        let displayStatus = order.status || "pending";
-        if (order.orderType === "dine-in" && order.status === "completed" && order.paymentStatus !== "paid") {
-          // If it's a dine-in order marked completed but payment not taken, show as "ready"
-          displayStatus = "ready";
-        }
-        // For takeaway/delivery orders with payment, show as "completed"
-        if ((order.orderType === "take-away" || order.orderType === "delivery") && order.paymentStatus === "paid") {
-          displayStatus = "completed";
-        }
+        // Use the actual order status from backend
+        // Don't override based on payment status - let KDS control the workflow
+        const displayStatus = order.status || "pending";
         
         return {
           id: order.id,
