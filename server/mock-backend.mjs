@@ -1,7 +1,12 @@
 import { createServer } from "node:http";
 import { URL } from "node:url";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { requirePermission, extractUser } from "./middleware/permissions.mjs";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const PORT = Number(process.env.PORT || 5000);
 
 let nextMenuId = 7;
@@ -123,10 +128,32 @@ const restaurants = [
   { id: 1, name: "Demo Restaurant", owner: "Platform Team", city: "Delhi", status: "Active", plan: "Standard", logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23FF6B35' width='100' height='100'/%3E%3Ctext x='50' y='50' font-size='40' fill='white' text-anchor='middle' dy='.3em'%3E🍽️%3C/text%3E%3C/svg%3E", created_at: new Date().toISOString() },
 ];
 
-const users = [
-  { id: 1, name: "Super Admin", email: "superadmin@restrohub.local", password: "super123", role: "superadmin", restaurant_id: null, restaurant_name: null, is_active: true },
-  { id: 2, name: "Admin User", email: "admin@example.com", password: "admin123", role: "admin", restaurant_id: 1, restaurant_name: "Demo Restaurant", is_active: true },
-];
+// Load users from JSON file
+let users = [];
+const usersFilePath = join(__dirname, "data", "users.json");
+const restaurantsFilePath = join(__dirname, "data", "restaurants.json");
+
+try {
+  if (existsSync(usersFilePath)) {
+    const usersData = readFileSync(usersFilePath, "utf-8");
+    users = JSON.parse(usersData);
+    console.log(`[INIT] Loaded ${users.length} users from users.json`);
+  } else {
+    console.log("[INIT] users.json not found, using default users");
+    users = [
+      { id: 1, name: "Super Admin", email: "superadmin@restrohub.local", password: "super123", role: "superadmin", restaurant_id: null, restaurant_name: null, is_active: true },
+      { id: 2, name: "Admin User", email: "admin@example.com", password: "admin123", role: "admin", restaurant_id: 1, restaurant_name: "Demo Restaurant", is_active: true },
+      { id: 3, name: "Manager User", email: "manager@example.com", password: "manager123", role: "manager", restaurant_id: 1, restaurant_name: "Demo Restaurant", is_active: true },
+      { id: 4, name: "Staff User", email: "staff@example.com", password: "staff123", role: "staff", restaurant_id: 1, restaurant_name: "Demo Restaurant", is_active: true },
+    ];
+  }
+} catch (err) {
+  console.error("[INIT] Error loading users.json:", err.message);
+  users = [
+    { id: 1, name: "Super Admin", email: "superadmin@restrohub.local", password: "super123", role: "superadmin", restaurant_id: null, restaurant_name: null, is_active: true },
+    { id: 2, name: "Admin User", email: "admin@example.com", password: "admin123", role: "admin", restaurant_id: 1, restaurant_name: "Demo Restaurant", is_active: true },
+  ];
+}
 
 let nextUserId = 3;
 
