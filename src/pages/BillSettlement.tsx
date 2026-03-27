@@ -41,11 +41,11 @@ const BillSettlement: React.FC = () => {
     fetchOrders();
     fetchTables();
     
-    // Auto-refresh every 10 seconds
+    // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       fetchOrders();
       fetchTables();
-    }, 10000);
+    }, 30000);
     
     return () => clearInterval(interval);
   }, []);
@@ -58,6 +58,19 @@ const BillSettlement: React.FC = () => {
       const dineInOrders = data.filter(
         (o) => o.orderType === "dine-in" && o.paymentStatus === "unpaid"
       );
+      
+      // Group orders by table number to show all unpaid orders for each table
+      const groupedByTable = new Map<number, Order[]>();
+      dineInOrders.forEach(order => {
+        if (order.table_number) {
+          if (!groupedByTable.has(order.table_number)) {
+            groupedByTable.set(order.table_number, []);
+          }
+          groupedByTable.get(order.table_number)!.push(order);
+        }
+      });
+      
+      // Flatten back to array but keep grouped structure in mind
       setOrders(dineInOrders);
     } catch (err) {
       toast.error("Failed to load orders");
@@ -86,15 +99,20 @@ const BillSettlement: React.FC = () => {
   const handlePayment = async (orderId: number, tableNumber: number) => {
     setProcessingOrderId(orderId);
     try {
-      // Update order payment status
-      await apiRequest(`/orders/${orderId}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          paymentStatus: "paid",
-          paymentMethod: selectedPaymentMethod,
-          status: "completed",
-        }),
-      });
+      // Get all unpaid orders for this table
+      const tableOrders = orders.filter(o => o.table_number === tableNumber);
+      
+      // Update ALL unpaid orders for this table to paid
+      for (const order of tableOrders) {
+        await apiRequest(`/orders/${order.id}`, {
+          method: "PUT",
+          body: JSON.stringify({
+            paymentStatus: "paid",
+            paymentMethod: selectedPaymentMethod,
+            status: "completed",
+          }),
+        });
+      }
 
       // Update table status to available
       const table = tables.find((t) => t.number === tableNumber);
@@ -108,9 +126,8 @@ const BillSettlement: React.FC = () => {
         });
       }
 
-      toast.success(`Payment collected for Table ${tableNumber}`);
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
-      fetchTables();
+      toast.success(`Payment collected for Table ${tableNumber} (${tableOrders.length} order${tableOrders.length > 1 ? 's' : ''})`);
+      setOrders((prev) => prev.filter((o) => o.table_number !== tableNumber));
     } catch (err: any) {
       toast.error(err.message || "Failed to process payment");
     } finally {
@@ -143,41 +160,58 @@ const BillSettlement: React.FC = () => {
                 No pending payments. All tables are settled!
               </div>
             ) : (
-              orders.map((order) => {
-                const tableInfo = getTableInfo(order.table_number);
-                const isExpanded = expandedOrderId === order.id;
+              // Group orders by table
+              Array.from(
+                orders.reduce((map, order) => {
+                  const key = order.table_number;
+                  if (!map.has(key)) map.set(key, []);
+                  map.get(key)!.push(order);
+                  return map;
+                }, new Map<number, Order[]>())
+              ).map(([tableNumber, tableOrders]) => {
+                const tableInfo = getTableInfo(tableNumber);
+                const totalAmount = tableOrders.reduce((sum, o) => sum + o.total, 0);
+                const isExpanded = expandedOrderId === tableNumber;
+                
                 return (
                   <Card 
-                    key={order.id} 
+                    key={tableNumber} 
                     className="bg-white/90 shadow-lg border-orange-100 hover:shadow-xl transition-all cursor-pointer"
-                    onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+                    onClick={() => setExpandedOrderId(isExpanded ? null : tableNumber)}
                   >
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <div>
                           <CardTitle className="text-xl text-orange-700">
-                            Table {order.table_number}
+                            Table {tableNumber}
                           </CardTitle>
                           {tableInfo && (
                             <p className="text-sm text-muted-foreground mt-1">
                               {tableInfo.section} • {tableInfo.capacity} seats
                             </p>
                           )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {tableOrders.length} order{tableOrders.length > 1 ? 's' : ''}
+                          </p>
                         </div>
                         <Badge className="bg-green-500">Ready</Badge>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      {/* Order Items */}
+                      {/* All Orders for this Table */}
                       <div className="mb-4 pb-4 border-b">
-                        <p className="font-semibold text-sm mb-2">Items:</p>
-                        <ul className="text-sm space-y-1">
-                          {order.items.map((item, idx) => (
-                            <li key={idx} className="text-muted-foreground">
-                              • {item}
-                            </li>
-                          ))}
-                        </ul>
+                        <p className="font-semibold text-sm mb-2">Orders:</p>
+                        {tableOrders.map((order, idx) => (
+                          <div key={order.id} className="text-sm mb-2 p-2 bg-orange-50 rounded">
+                            <p className="font-medium">Order #{order.id}</p>
+                            <ul className="text-xs text-muted-foreground ml-2">
+                              {order.items.map((item, i) => (
+                                <li key={i}>• {item}</li>
+                              ))}
+                            </ul>
+                            <p className="text-xs font-semibold mt-1">₹{order.total}</p>
+                          </div>
+                        ))}
                       </div>
 
                       {/* Total */}
@@ -185,7 +219,7 @@ const BillSettlement: React.FC = () => {
                         <div className="flex justify-between items-center">
                           <span className="font-semibold">Total Amount:</span>
                           <span className="text-2xl font-bold text-orange-600">
-                            ₹{order.total}
+                            ₹{totalAmount}
                           </span>
                         </div>
                       </div>
@@ -218,12 +252,16 @@ const BillSettlement: React.FC = () => {
                         className="w-full bg-green-500 hover:bg-green-600"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handlePayment(order.id, order.table_number);
+                          handlePayment(tableOrders[0].id, tableNumber);
                         }}
-                        disabled={processingOrderId === order.id}
+                        disabled={processingOrderId === tableNumber || !isExpanded}
                       >
-                        {processingOrderId === order.id ? (
+                        {processingOrderId === tableNumber ? (
                           "Processing..."
+                        ) : !isExpanded ? (
+                          <>
+                            <Check size={16} className="mr-2" /> Select Payment Method First
+                          </>
                         ) : (
                           <>
                             <Check size={16} className="mr-2" /> Collect Payment

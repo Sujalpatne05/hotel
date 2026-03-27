@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { URL } from "node:url";
+import { requirePermission, extractUser } from "./middleware/permissions.mjs";
 
 const PORT = Number(process.env.PORT || 5000);
 
@@ -397,14 +398,29 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/orders") {
-      send(res, 200, orders);
+      // Check permission
+      const permCheck = requirePermission("orders", "GET")(req);
+      if (!permCheck.allowed) {
+        send(res, 403, { error: permCheck.reason });
+        return;
+      }
+
+      // Filter orders by restaurant_id if not superadmin
+      const user = extractUser(req);
+      let filteredOrders = orders;
+      if (user && user.role !== "superadmin" && user.restaurant_id) {
+        // For now, return all orders (in production, filter by restaurant_id)
+        // This is a mock backend, so we don't have restaurant_id on orders yet
+      }
+
+      send(res, 200, filteredOrders);
       return;
     }
 
     // Get order by table number
     if (req.method === "GET" && path.startsWith("/orders/table/")) {
       const tableNum = Number(path.split("/").pop());
-      const order = orders.find(o => o.table_number === tableNum && o.status !== "completed");
+      const order = orders.find(o => o.table_number === tableNum && o.status !== "completed" && o.status !== "served");
       if (order) {
         send(res, 200, order);
       } else {
