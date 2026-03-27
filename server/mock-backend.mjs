@@ -284,8 +284,8 @@ const server = createServer(async (req, res) => {
       const password = String(body.password || "").trim();
       const role = body.role ? String(body.role).toLowerCase() : null;
 
-      console.log(`[LOGIN] Attempting login with email: ${email}, role: ${role}`);
-      console.log(`[LOGIN] Available users:`, users.map(u => ({ email: u.email, role: u.role })));
+      console.log(`[LOGIN] Attempting login with email: ${email}, password: ${password}, role: ${role}`);
+      console.log(`[LOGIN] Available users:`, users.map(u => ({ email: u.email, password: u.password, role: u.role })));
 
       // Check users array for matching credentials
       // If role is specified, match it; otherwise accept any role

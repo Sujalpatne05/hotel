@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       // manifest: require("./public/manifest.webmanifest"), // Removed: Vite serves manifest.webmanifest from public automatically
       devOptions: {
-        enabled: true
+        enabled: false
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,png,svg,ico,json,webmanifest}"]
