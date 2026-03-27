@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, TrendingUp, Download } from "lucide-react";
 import { buildAuthHeaders, clearAuthSession, isAuthError } from "@/lib/session";
 import { useNavigate } from "react-router-dom";
+import jsPDF from "jspdf";
 
 const API_BASE_URL = (() => {
   const configured = (import.meta.env.VITE_API_URL || "").trim();
@@ -145,6 +146,108 @@ export default function DailyTally() {
     }
   };
 
+  const handleExportReport = (format: "pdf" | "csv") => {
+    if (format === "csv") {
+      const csvRows = [
+        "Daily Tally Report",
+        `Generated: ${new Date().toLocaleString("en-IN")}`,
+        `Period: ${getPeriodLabel()}`,
+        "",
+        "SUMMARY",
+        `Total Revenue,Rs ${stats.totalRevenue.toLocaleString("en-IN")}`,
+        `Total Orders,${stats.totalOrders}`,
+        `Paid Orders,${stats.paidOrders}`,
+        `Unpaid Orders,${stats.unpaidOrders}`,
+        `Unpaid Amount,Rs ${stats.unpaidAmount.toLocaleString("en-IN")}`,
+        "",
+        "PAYMENT METHODS",
+        `Cash,Rs ${stats.paymentMethods.cash.toLocaleString("en-IN")}`,
+        `Card,Rs ${stats.paymentMethods.card.toLocaleString("en-IN")}`,
+        `UPI,Rs ${stats.paymentMethods.upi.toLocaleString("en-IN")}`,
+        "",
+        "ORDER TYPES",
+        `Dine-in,Rs ${stats.orderTypes.dineIn.toLocaleString("en-IN")}`,
+        `Takeaway,Rs ${stats.orderTypes.takeaway.toLocaleString("en-IN")}`,
+        `Delivery,Rs ${stats.orderTypes.delivery.toLocaleString("en-IN")}`,
+        "",
+        "BILLS",
+        "Bill ID,Type,Items,Payment Method,Amount,Status",
+        ...filteredOrders.map((order) => 
+          `ORD-${order.id},${order.orderType || "N/A"},"${Array.isArray(order.items) ? order.items.join("; ") : "N/A"}",${order.paymentMethod || "N/A"},Rs ${order.total},${order.paymentStatus === "paid" || order.status === "completed" ? "Paid" : "Unpaid"}`
+        ),
+      ];
+      const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `daily-tally-${new Date().toISOString().split("T")[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      return;
+    }
+
+    // PDF export
+    const doc = new jsPDF();
+    let yPos = 15;
+
+    // Title
+    doc.setFontSize(18);
+    doc.setFont(undefined, "bold");
+    doc.text("Daily Tally Report", 10, yPos);
+    yPos += 10;
+
+    // Generated date and period
+    doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
+    doc.text(`Generated: ${new Date().toLocaleString("en-IN")}`, 10, yPos);
+    yPos += 5;
+    doc.text(`Period: ${getPeriodLabel()}`, 10, yPos);
+    yPos += 8;
+
+    // Summary section
+    doc.setFont(undefined, "bold");
+    doc.text("SUMMARY", 10, yPos);
+    yPos += 6;
+    doc.setFont(undefined, "normal");
+    doc.text(`Total Revenue: Rs ${stats.totalRevenue.toLocaleString("en-IN")}`, 12, yPos);
+    yPos += 5;
+    doc.text(`Total Orders: ${stats.totalOrders}`, 12, yPos);
+    yPos += 5;
+    doc.text(`Paid Orders: ${stats.paidOrders}`, 12, yPos);
+    yPos += 5;
+    doc.text(`Unpaid Orders: ${stats.unpaidOrders}`, 12, yPos);
+    yPos += 5;
+    doc.text(`Unpaid Amount: Rs ${stats.unpaidAmount.toLocaleString("en-IN")}`, 12, yPos);
+    yPos += 10;
+
+    // Payment Methods section
+    doc.setFont(undefined, "bold");
+    doc.text("PAYMENT METHODS", 10, yPos);
+    yPos += 6;
+    doc.setFont(undefined, "normal");
+    doc.text(`Cash: Rs ${stats.paymentMethods.cash.toLocaleString("en-IN")}`, 12, yPos);
+    yPos += 5;
+    doc.text(`Card: Rs ${stats.paymentMethods.card.toLocaleString("en-IN")}`, 12, yPos);
+    yPos += 5;
+    doc.text(`UPI: Rs ${stats.paymentMethods.upi.toLocaleString("en-IN")}`, 12, yPos);
+    yPos += 10;
+
+    // Order Types section
+    doc.setFont(undefined, "bold");
+    doc.text("ORDER TYPES", 10, yPos);
+    yPos += 6;
+    doc.setFont(undefined, "normal");
+    doc.text(`Dine-in: Rs ${stats.orderTypes.dineIn.toLocaleString("en-IN")}`, 12, yPos);
+    yPos += 5;
+    doc.text(`Takeaway: Rs ${stats.orderTypes.takeaway.toLocaleString("en-IN")}`, 12, yPos);
+    yPos += 5;
+    doc.text(`Delivery: Rs ${stats.orderTypes.delivery.toLocaleString("en-IN")}`, 12, yPos);
+
+    doc.save(`daily-tally-${new Date().toISOString().split("T")[0]}.pdf`);
+  };
+
   return (
     <DashboardLayout>
       <div className="p-4 md:p-6 space-y-6">
@@ -156,9 +259,14 @@ export default function DailyTally() {
             </h1>
             <p className="text-gray-600 mt-1">Track your revenue and bills</p>
           </div>
-          <Button variant="outline" className="flex items-center gap-2">
-            <Download size={16} /> Export Report
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => handleExportReport("pdf")} className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white">
+              <Download size={16} /> Export PDF
+            </Button>
+            <Button onClick={() => handleExportReport("csv")} variant="outline" className="flex items-center gap-2">
+              <Download size={16} /> Export CSV
+            </Button>
+          </div>
         </div>
 
         {/* Period Selector */}

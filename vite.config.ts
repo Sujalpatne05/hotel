@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
     proxy: {
-      '/menu': 'http://localhost:5000',
+      '/api': 'http://localhost:5000',
     },
   },
   plugins: [

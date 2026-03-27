@@ -36,16 +36,16 @@ export default function SuperAdminLogin() {
         return;
       }
 
-      const mustChangePassword = Boolean(data?.user?.mustChangePassword);
+      // Always go directly to dashboard - no change password page
       saveAuthSession(
         data.token,
         data.user.role,
         data.user.name,
         String(data?.user?.restaurantName || ""),
         typeof data?.user?.restaurantId === "number" ? data.user.restaurantId : null,
-        mustChangePassword,
+        false
       );
-      window.location.href = mustChangePassword ? "/change-password" : "/superadmin-dashboard";
+      window.location.href = "/superadmin-dashboard";
     } catch {
       setError("Unable to connect to backend.");
     } finally {

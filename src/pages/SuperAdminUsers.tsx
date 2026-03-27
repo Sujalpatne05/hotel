@@ -15,11 +15,11 @@ type ApiAdminUser = {
   id: number;
   name: string;
   email: string;
-  role: "admin";
+  role: "admin" | "manager" | "staff";
   restaurant_name: string;
   is_active: boolean;
   must_change_password: boolean;
-  created_at: string;
+  created_at?: string;
 };
 
 export default function SuperAdminUsers() {
@@ -31,14 +31,29 @@ export default function SuperAdminUsers() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showMenu, setShowMenu] = useState<number | null>(null);
   const [deleteUser, setDeleteUser] = useState<ApiAdminUser | null>(null);
+  const [restaurants, setRestaurants] = useState<Array<{ id: number; name: string }>>([]);
   const [addForm, setAddForm] = useState({
     name: "",
     email: "",
-    restaurantName: "",
+    role: "manager",
+    restaurantId: "",
     temporaryPassword: "",
   });
 
   const headers = buildAuthHeaders();
+
+  const fetchRestaurants = async () => {
+    if (!headers) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/superadmin/restaurants`, { headers });
+      const data = await response.json();
+      if (response.ok && Array.isArray(data)) {
+        setRestaurants(data.map((r: any) => ({ id: r.id, name: r.name })));
+      }
+    } catch {
+      // Silently fail, restaurants optional
+    }
+  };
 
   const fetchAdmins = async () => {
     if (!headers) {
@@ -70,6 +85,7 @@ export default function SuperAdminUsers() {
   };
 
   useEffect(() => {
+    fetchRestaurants();
     fetchAdmins();
   }, []);
 
@@ -88,6 +104,27 @@ export default function SuperAdminUsers() {
     event.preventDefault();
     if (!headers) return;
 
+    // Validate all required fields
+    if (!addForm.name.trim()) {
+      setError("Please enter full name");
+      return;
+    }
+
+    if (!addForm.email.trim()) {
+      setError("Please enter email address");
+      return;
+    }
+
+    if (!addForm.temporaryPassword.trim()) {
+      setError("Please enter temporary password");
+      return;
+    }
+
+    if (!addForm.restaurantId) {
+      setError("Please select a restaurant");
+      return;
+    }
+
     try {
       setError("");
       setMessage("");
@@ -97,20 +134,21 @@ export default function SuperAdminUsers() {
         body: JSON.stringify({
           name: addForm.name.trim(),
           email: addForm.email.trim(),
-          role: "admin",
-          restaurantName: addForm.restaurantName.trim(),
+          role: addForm.role,
+          restaurantId: Number(addForm.restaurantId),
           temporaryPassword: addForm.temporaryPassword,
         }),
       });
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data?.error || "Unable to create admin.");
+        setError(data?.error || "Unable to create user.");
         return;
       }
 
-      setMessage("Admin created. Temporary credentials dispatched (demo queue).");
-      setAddForm({ name: "", email: "", restaurantName: "", temporaryPassword: "" });
+      const roleLabel = addForm.role.charAt(0).toUpperCase() + addForm.role.slice(1);
+      setMessage(`${roleLabel} created. Temporary credentials dispatched (demo queue).`);
+      setAddForm({ name: "", email: "", role: "manager", restaurantId: "", temporaryPassword: "" });
       setShowAddModal(false);
       await fetchAdmins();
     } catch {
@@ -132,7 +170,7 @@ export default function SuperAdminUsers() {
         return;
       }
       setUsers((current) => current.map((item) => (item.id === data.id ? data : item)));
-      setMessage(`Admin ${data.name} is now ${data.is_active ? "active" : "inactive"}.`);
+      setMessage(`User ${data.name} is now ${data.is_active ? "active" : "inactive"}.`);
     } catch {
       setError("Unable to connect to backend.");
     }
@@ -170,12 +208,12 @@ export default function SuperAdminUsers() {
       });
       const data = await response.json();
       if (!response.ok) {
-        setError(data?.error || "Unable to delete admin.");
+        setError(data?.error || "Unable to delete user.");
         return;
       }
       if (data.success) {
         setUsers((current) => current.filter((user) => user.id !== deleteUser.id));
-        setMessage("Admin deleted successfully.");
+        setMessage("User deleted successfully.");
         setDeleteUser(null);
       }
     } catch {
@@ -188,15 +226,15 @@ export default function SuperAdminUsers() {
       <div className="space-y-5 p-3 sm:p-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-extrabold text-slate-900">Admin Access Control</h1>
-            <p className="text-sm text-slate-500">Create and manage restaurant admin accounts with temporary-password workflow.</p>
+            <h1 className="text-3xl font-extrabold text-slate-900">User Access Control</h1>
+            <p className="text-sm text-slate-500">Create and manage admin, manager, and staff accounts with role-based access control.</p>
           </div>
           <button
             className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
             onClick={() => setShowAddModal(true)}
           >
             <UserPlus className="h-4 w-4" />
-            Add Admin
+            Add User
           </button>
         </div>
 
@@ -220,7 +258,7 @@ export default function SuperAdminUsers() {
             <table className="w-full min-w-[860px] text-left">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Admin</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">User</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Role</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Restaurant</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Status</th>
@@ -231,7 +269,7 @@ export default function SuperAdminUsers() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td className="px-4 py-5 text-sm text-slate-500" colSpan={6}>Loading admin users...</td>
+                    <td className="px-4 py-5 text-sm text-slate-500" colSpan={6}>Loading users...</td>
                   </tr>
                 ) : (
                   filteredUsers.map((user, idx) => (
@@ -241,7 +279,11 @@ export default function SuperAdminUsers() {
                         <div className="text-xs text-slate-500">{user.email}</div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">
+                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
+                          user.role === "admin" ? "bg-amber-100 text-amber-800" :
+                          user.role === "manager" ? "bg-blue-100 text-blue-800" :
+                          "bg-green-100 text-green-800"
+                        }`}>
                           <Shield className="h-3.5 w-3.5" />
                           {user.role}
                         </span>
@@ -273,7 +315,7 @@ export default function SuperAdminUsers() {
                                 Reset Temp Password
                               </button>
                               <button className="block min-h-10 w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50" onClick={() => { setShowMenu(null); setDeleteUser(user); }}>
-                                Delete Admin
+                                Delete User
                               </button>
                             </div>
                           )}
@@ -290,8 +332,8 @@ export default function SuperAdminUsers() {
         {showAddModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3">
             <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
-              <h2 className="text-xl font-bold text-slate-900">Add Admin</h2>
-              <p className="mt-1 text-sm text-slate-500">Create admin with temporary password.</p>
+              <h2 className="text-xl font-bold text-slate-900">Add User</h2>
+              <p className="mt-1 text-sm text-slate-500">Create a new user with role-based access control.</p>
               <form className="mt-4 space-y-3" onSubmit={handleCreateAdmin}>
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-slate-700">Full Name</label>
@@ -303,11 +345,20 @@ export default function SuperAdminUsers() {
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-slate-700">Role</label>
-                  <input value="admin" readOnly className="w-full rounded-lg border border-slate-300 bg-slate-100 px-3 py-2 text-slate-600" />
+                  <select value={addForm.role} onChange={(event) => setAddForm((prev) => ({ ...prev, role: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2">
+                    <option value="admin">Admin (Full Access)</option>
+                    <option value="manager">Manager (High Access)</option>
+                    <option value="staff">Staff (Limited Access)</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700">Restaurant Mapping</label>
-                  <input className="w-full rounded-lg border border-slate-300 px-3 py-2" value={addForm.restaurantName} onChange={(event) => setAddForm((prev) => ({ ...prev, restaurantName: event.target.value }))} required />
+                  <label className="mb-1 block text-sm font-semibold text-slate-700">Restaurant</label>
+                  <select value={addForm.restaurantId} onChange={(event) => setAddForm((prev) => ({ ...prev, restaurantId: event.target.value }))} className="w-full rounded-lg border border-slate-300 px-3 py-2" required>
+                    <option value="">Select a restaurant</option>
+                    {restaurants.map((r) => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="mb-1 block text-sm font-semibold text-slate-700">Temporary Password</label>
@@ -318,7 +369,7 @@ export default function SuperAdminUsers() {
                     Cancel
                   </button>
                   <button type="submit" className="min-h-10 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-                    Create Admin
+                    Create User
                   </button>
                 </div>
               </form>
@@ -329,7 +380,7 @@ export default function SuperAdminUsers() {
         {deleteUser && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3">
             <div className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
-              <h2 className="text-xl font-bold text-slate-900">Delete Admin</h2>
+              <h2 className="text-xl font-bold text-slate-900">Delete User</h2>
               <p className="mt-2 text-sm text-slate-600">Are you sure you want to delete <span className="font-semibold">{deleteUser.name}</span>?</p>
               <div className="mt-5 flex justify-end gap-2">
                 <button className="min-h-10 rounded-lg border border-slate-300 px-4 py-2 text-sm" onClick={() => setDeleteUser(null)}>

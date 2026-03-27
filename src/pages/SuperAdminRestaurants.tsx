@@ -259,6 +259,12 @@ export default function SuperAdminRestaurants() {
           logo: form.logo || null,
           subscriptionStartDate: form.subscriptionStartDate,
           subscriptionExpiryDate: form.subscriptionExpiryDate,
+          // Include admin credentials if quick admin is enabled
+          ...(quickAdminEnabled && {
+            admin_name: adminOneForm.name.trim(),
+            admin_email: adminOneForm.email.trim(),
+            admin_password: adminOneForm.temporaryPassword.trim(),
+          }),
         }),
       });
       const createData = await createResponse.json();

@@ -42,48 +42,59 @@ const API_BASE_URL = (() => {
   return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
 })();
 
-const menuGroups = [
-  {
-    label: "Overview",
-    items: [
-      { title: "Dashboard", url: "/", icon: LayoutDashboard },
-    ],
-  },
-  {
-    label: "Orders & Billing",
-    items: [
-      { title: "POS Billing", url: "/billing", icon: Receipt },
-      { title: "Billing", url: "/bill-settlement", icon: Wallet },
-      { title: "Kitchen Display", url: "/kitchen-display", icon: Monitor },
-      { title: "Orders", url: "/orders", icon: ShoppingCart },
-    ],
-  },
-  {
-    label: "Restaurant",
-    items: [
-      { title: "Menu Management", url: "/menu", icon: UtensilsCrossed },
-      { title: "Table Management", url: "/table-management", icon: Table },
-      { title: "Reservations", url: "/reservations", icon: Calendar },
-      { title: "Delivery Management", url: "/delivery-management", icon: Truck },
-    ],
-  },
-  {
-    label: "Finance",
-    items: [
-      { title: "Payments Overview", url: "/payments-overview", icon: CreditCard },
-      { title: "Reports & Tally", url: "/reports", icon: BarChart3 },
-    ],
-  },
-  {
-    label: "Management",
-    items: [
-      { title: "Inventory", url: "/inventory", icon: Package },
-      { title: "Payroll", url: "/payroll", icon: Users },
-      { title: "Tasks", url: "/tasks", icon: ClipboardList },
-      { title: "CRM", url: "/crm", icon: UserCog },
-    ],
-  },
-];
+// Role-based menu configuration
+const getMenuGroups = (role: string | null) => {
+  const baseMenuGroups = [
+    {
+      label: "Overview",
+      items: [
+        { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["admin"] },
+      ],
+    },
+    {
+      label: "Orders & Billing",
+      items: [
+        { title: "POS Billing", url: "/billing", icon: Receipt, roles: ["admin", "manager"] },
+        { title: "Billing", url: "/bill-settlement", icon: Wallet, roles: ["admin", "manager"] },
+        { title: "Kitchen Display", url: "/kitchen-display", icon: Monitor, roles: ["admin", "manager", "staff"] },
+        { title: "Orders", url: "/orders", icon: ShoppingCart, roles: ["admin", "manager", "staff"] },
+      ],
+    },
+    {
+      label: "Restaurant",
+      items: [
+        { title: "Menu Management", url: "/menu", icon: UtensilsCrossed, roles: ["admin", "manager"] },
+        { title: "Table Management", url: "/table-management", icon: Table, roles: ["admin", "manager"] },
+        { title: "Reservations", url: "/reservations", icon: Calendar, roles: ["admin", "manager"] },
+        { title: "Delivery Management", url: "/delivery-management", icon: Truck, roles: ["admin", "manager"] },
+      ],
+    },
+    {
+      label: "Finance",
+      items: [
+        { title: "Payments Overview", url: "/payments-overview", icon: CreditCard, roles: ["admin"] },
+        { title: "Reports & Tally", url: "/reports", icon: BarChart3, roles: ["admin"] },
+      ],
+    },
+    {
+      label: "Management",
+      items: [
+        { title: "Inventory", url: "/inventory", icon: Package, roles: ["admin", "manager"] },
+        { title: "Payroll", url: "/payroll", icon: Users, roles: ["admin", "manager"] },
+        { title: "Tasks", url: "/tasks", icon: ClipboardList, roles: ["admin", "manager"] },
+        { title: "CRM", url: "/crm", icon: UserCog, roles: ["admin", "manager"] },
+      ],
+    },
+  ];
+
+  // Filter menu groups and items based on role
+  return baseMenuGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => item.roles.includes(role || "staff")),
+    }))
+    .filter((group) => group.items.length > 0);
+};
 
 export function AppSidebar() {
   const { state, openMobile, setOpenMobile } = useSidebar();
@@ -93,6 +104,7 @@ export function AppSidebar() {
   const isMobile = useIsMobile();
   const restaurantName = getStoredRestaurantName();
   const [logo, setLogo] = useState<string | null>(null);
+  const menuGroups = getMenuGroups(userRole);
 
   useEffect(() => {
     const fetchLogo = async () => {

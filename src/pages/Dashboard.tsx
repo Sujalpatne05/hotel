@@ -19,6 +19,7 @@ const API_BASE_URL = (() => {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const userRole = localStorage.getItem("userRole") || "staff";
   const [orders, setOrders] = useState<any[]>([]);
   const [tables, setTables] = useState<any[]>([]);
   const [inventory, setInventory] = useState<any[]>([]);
@@ -127,22 +128,26 @@ export default function Dashboard() {
           <ChefHat className="h-16 w-16 text-orange-200 hidden sm:block" />
         </div>
 
-        {/* Key Stats */}
+        {/* Key Stats - Role Based */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div onClick={() => navigate("/payments-overview")} className="cursor-pointer">
-            <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-green-500">
-              <CardContent className="pt-4 pb-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Total Revenue</p>
-                    <p className="text-2xl font-bold text-green-600">₹{stats.totalRevenue.toLocaleString("en-IN")}</p>
+          {/* Total Revenue - Admin only */}
+          {userRole === "admin" && (
+            <div onClick={() => navigate("/payments-overview")} className="cursor-pointer">
+              <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-green-500">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Total Revenue</p>
+                      <p className="text-2xl font-bold text-green-600">₹{stats.totalRevenue.toLocaleString("en-IN")}</p>
+                    </div>
+                    <div className="bg-green-100 p-2 rounded-lg"><IndianRupee className="h-5 w-5 text-green-600" /></div>
                   </div>
-                  <div className="bg-green-100 p-2 rounded-lg"><IndianRupee className="h-5 w-5 text-green-600" /></div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
+          {/* Total Orders - All roles */}
           <div onClick={() => navigate("/orders")} className="cursor-pointer">
             <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-blue-500">
               <CardContent className="pt-4 pb-4">
@@ -157,31 +162,37 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          <Card className="border-l-4 border-l-purple-500">
-            <CardContent className="pt-4 pb-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Avg Order Value</p>
-                  <p className="text-2xl font-bold text-purple-600">₹{stats.avgOrder.toLocaleString("en-IN")}</p>
-                </div>
-                <div className="bg-purple-100 p-2 rounded-lg"><TrendingUp className="h-5 w-5 text-purple-600" /></div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div onClick={() => navigate("/bill-settlement")} className="cursor-pointer">
-            <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-orange-500">
+          {/* Avg Order Value - Admin only */}
+          {userRole === "admin" && (
+            <Card className="border-l-4 border-l-purple-500">
               <CardContent className="pt-4 pb-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Unpaid Bills</p>
-                    <p className="text-2xl font-bold text-orange-600">{stats.unpaidOrders.length}</p>
+                    <p className="text-xs text-gray-500 mb-1">Avg Order Value</p>
+                    <p className="text-2xl font-bold text-purple-600">₹{stats.avgOrder.toLocaleString("en-IN")}</p>
                   </div>
-                  <div className="bg-orange-100 p-2 rounded-lg"><CreditCard className="h-5 w-5 text-orange-600" /></div>
+                  <div className="bg-purple-100 p-2 rounded-lg"><TrendingUp className="h-5 w-5 text-purple-600" /></div>
                 </div>
               </CardContent>
             </Card>
-          </div>
+          )}
+
+          {/* Unpaid Bills - Admin only */}
+          {userRole === "admin" && (
+            <div onClick={() => navigate("/bill-settlement")} className="cursor-pointer">
+              <Card className="hover:shadow-lg transition-shadow border-l-4 border-l-orange-500">
+                <CardContent className="pt-4 pb-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Unpaid Bills</p>
+                      <p className="text-2xl font-bold text-orange-600">{stats.unpaidOrders.length}</p>
+                    </div>
+                    <div className="bg-orange-100 p-2 rounded-lg"><CreditCard className="h-5 w-5 text-orange-600" /></div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
 
         {/* Pending Actions */}
@@ -216,47 +227,49 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* Table Status */}
-          <Card className="lg:col-span-2">
-            <CardHeader className="pb-3">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Table size={18} className="text-orange-500" /> Live Table Status
-                </CardTitle>
-                <Button size="sm" variant="ghost" onClick={() => navigate("/table-management")} className="text-orange-600 text-xs">
-                  Manage <ArrowRight size={14} className="ml-1" />
-                </Button>
-              </div>
-              <div className="flex gap-3 text-xs mt-1">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span> Available</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Occupied</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block"></span> Reserved</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-400 inline-block"></span> Maintenance</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="text-center py-4 text-gray-400">Loading tables...</div>
-              ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                  {tables.map((table: any) => (
-                    <div
-                      key={table.id}
-                      onClick={() => table.status === "occupied" ? navigate(`/billing?table=${table.table_number ?? table.number}`) : navigate("/table-management")}
-                      className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all hover:scale-105 ${tableTextColor(table.status)}`}
-                    >
-                      <div className={`w-3 h-3 rounded-full mx-auto mb-1 ${tableStatusColor(table.status)}`}></div>
-                      <p className="font-bold text-sm">T{table.table_number ?? table.number}</p>
-                      <p className="text-xs capitalize">{table.status}</p>
-                      {table.status === "occupied" && (
-                        <p className="text-xs mt-1 font-semibold">Open Bill</p>
-                      )}
-                    </div>
-                  ))}
+          {/* Table Status - Admin & Manager only */}
+          {(userRole === "admin" || userRole === "manager") && (
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Table size={18} className="text-orange-500" /> Live Table Status
+                  </CardTitle>
+                  <Button size="sm" variant="ghost" onClick={() => navigate("/table-management")} className="text-orange-600 text-xs">
+                    Manage <ArrowRight size={14} className="ml-1" />
+                  </Button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <div className="flex gap-3 text-xs mt-1">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span> Available</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Occupied</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block"></span> Reserved</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-400 inline-block"></span> Maintenance</span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="text-center py-4 text-gray-400">Loading tables...</div>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                    {tables.map((table: any) => (
+                      <div
+                        key={table.id}
+                        onClick={() => table.status === "occupied" ? navigate(`/billing?table=${table.table_number ?? table.number}`) : navigate("/table-management")}
+                        className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all hover:scale-105 ${tableTextColor(table.status)}`}
+                      >
+                        <div className={`w-3 h-3 rounded-full mx-auto mb-1 ${tableStatusColor(table.status)}`}></div>
+                        <p className="font-bold text-sm">T{table.table_number ?? table.number}</p>
+                        <p className="text-xs capitalize">{table.status}</p>
+                        {table.status === "occupied" && (
+                          <p className="text-xs mt-1 font-semibold">Open Bill</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Kitchen Status */}
           <Card>
@@ -298,40 +311,42 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* Top Selling Items Today */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp size={18} className="text-orange-500" /> Top Selling Items
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {topItems.length === 0 ? (
-                <p className="text-gray-400 text-sm text-center py-4">No orders yet</p>
-              ) : (
-                <div className="space-y-2">
-                  {topItems.map(([name, count], idx) => {
-                    const maxCount = topItems[0][1];
-                    const pct = Math.round((count / maxCount) * 100);
-                    return (
-                      <div key={name} className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-orange-500 w-4">#{idx + 1}</span>
-                        <div className="flex-1">
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="font-medium">{name}</span>
-                            <span className="text-gray-500">{count} sold</span>
-                          </div>
-                          <div className="w-full bg-gray-100 rounded-full h-2">
-                            <div className="bg-orange-500 h-2 rounded-full transition-all" style={{ width: `${pct}%` }}></div>
+          {/* Top Selling Items Today - Admin only */}
+          {userRole === "admin" && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingUp size={18} className="text-orange-500" /> Top Selling Items
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {topItems.length === 0 ? (
+                  <p className="text-gray-400 text-sm text-center py-4">No orders yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {topItems.map(([name, count], idx) => {
+                      const maxCount = topItems[0][1];
+                      const pct = Math.round((count / maxCount) * 100);
+                      return (
+                        <div key={name} className="flex items-center gap-3">
+                          <span className="text-xs font-bold text-orange-500 w-4">#{idx + 1}</span>
+                          <div className="flex-1">
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="font-medium">{name}</span>
+                              <span className="text-gray-500">{count} sold</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-2">
+                              <div className="bg-orange-500 h-2 rounded-full transition-all" style={{ width: `${pct}%` }}></div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Recent Activity */}
           <Card>
@@ -370,8 +385,8 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Low Stock Alert */}
-        {stats.lowStock.length > 0 && (
+        {/* Low Stock Alert - Admin only */}
+        {userRole === "admin" && stats.lowStock.length > 0 && (
           <Card className="border-red-200 bg-red-50">
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2 text-red-700">

@@ -1,0 +1,89 @@
+[
+  {
+    "id": 1,
+    "name": "Super Admin",
+    "email": "superadmin@restrohub.local",
+    "password": "super123",
+    "role": "superadmin",
+    "restaurant_id": null,
+    "restaurant_name": null,
+    "is_active": true,
+    "must_change_password": false
+  },
+  {
+    "id": 2,
+    "name": "Admin User",
+    "email": "admin@example.com",
+    "password": "admin123",
+    "role": "admin",
+    "restaurant_id": 1,
+    "restaurant_name": "Demo Restaurant",
+    "is_active": true,
+    "must_change_password": false
+  },
+  {
+    "id": 3,
+    "name": "Manager User",
+    "email": "manager@example.com",
+    "password": "manager123",
+    "role": "manager",
+    "restaurant_id": 1,
+    "restaurant_name": "Demo Restaurant",
+    "is_active": true,
+    "must_change_password": false
+  },
+  {
+    "id": 4,
+    "name": "Staff User",
+    "email": "staff@example.com",
+    "password": "staff123",
+    "role": "staff",
+    "restaurant_id": 1,
+    "restaurant_name": "Demo Restaurant",
+    "is_active": true,
+    "must_change_password": false
+  },
+  {
+    "id": 7,
+    "name": "SS Manager",
+    "email": "ss",
+    "password": "ss",
+    "role": "manager",
+    "restaurant_id": 1,
+    "restaurant_name": "Demo Restaurant",
+    "is_active": true,
+    "must_change_password": false
+  },
+  {
+    "id": 11,
+    "name": "Patne Sujal Jitendra",
+    "email": "sujalpatne583@gmail.com",
+    "password": "sujal111",
+    "role": "admin",
+    "restaurant_id": 2,
+    "restaurant_name": "Dosti cafe",
+    "is_active": true
+  },
+  {
+    "id": 12,
+    "name": "shoheb",
+    "email": "shohebkhan@123",
+    "password": "sujal111",
+    "role": "manager",
+    "restaurant_id": 2,
+    "restaurant_name": "Dosti cafe",
+    "is_active": true,
+    "must_change_password": true
+  },
+  {
+    "id": 13,
+    "name": "jugal",
+    "email": "jugalpatne125@gmail.com",
+    "password": "jugal123",
+    "role": "staff",
+    "restaurant_id": 2,
+    "restaurant_name": "Dosti cafe",
+    "is_active": true,
+    "must_change_password": true
+  }
+]

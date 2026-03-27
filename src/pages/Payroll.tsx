@@ -32,6 +32,9 @@ export default function Payroll() {
   const [newRole, setNewRole] = useState("");
   const [newSalary, setNewSalary] = useState("");
   const [loading, setLoading] = useState(true);
+  const [editingAttendanceId, setEditingAttendanceId] = useState<number | null>(null);
+  const [attendancePresent, setAttendancePresent] = useState(false);
+  const [attendanceLeaves, setAttendanceLeaves] = useState(0);
 
   const loadStaff = useCallback(async () => {
     const headers = buildAuthHeaders();
@@ -153,6 +156,38 @@ export default function Payroll() {
     await loadStaff();
   };
 
+  const handleEditAttendance = (member: StaffMember) => {
+    setEditingAttendanceId(member.id);
+    setAttendancePresent(member.present);
+    setAttendanceLeaves(member.leaves);
+  };
+
+  const handleUpdateAttendance = async () => {
+    if (editingAttendanceId === null) return;
+    const headers = buildAuthHeaders();
+    if (!headers) return;
+
+    const response = await fetch(`${API_BASE_URL}/payroll/staff/${editingAttendanceId}`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({
+        present: attendancePresent,
+        leaves: attendanceLeaves,
+      }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json();
+      alert(data?.error || "Unable to update attendance");
+      return;
+    }
+
+    await loadStaff();
+    setEditingAttendanceId(null);
+    setAttendancePresent(false);
+    setAttendanceLeaves(0);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -204,13 +239,25 @@ export default function Payroll() {
                       </td>
                       <td className="py-2">{s.role}</td>
                       <td className="py-2 text-center">
-                        {s.present ? (
-                          <span className="text-green-600 font-semibold">Yes</span>
-                        ) : (
-                          <span className="text-red-500 font-semibold">No</span>
-                        )}
+                        <button
+                          onClick={() => handleEditAttendance(s)}
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded font-semibold text-xs transition-all hover:scale-105"
+                          style={{
+                            backgroundColor: s.present ? "#dcfce7" : "#fee2e2",
+                            color: s.present ? "#16a34a" : "#dc2626",
+                          }}
+                        >
+                          {s.present ? "Yes" : "No"}
+                        </button>
                       </td>
-                      <td className="py-2 text-center">{s.leaves}</td>
+                      <td className="py-2 text-center">
+                        <button
+                          onClick={() => handleEditAttendance(s)}
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded font-semibold text-xs bg-blue-100 text-blue-600 transition-all hover:scale-105"
+                        >
+                          {s.leaves}
+                        </button>
+                      </td>
                       <td className="py-2 text-right">{s.salary.toLocaleString()}</td>
                       <td className="py-2 text-center">
                         <button onClick={() => handleEditStaff(s)} className="inline-flex items-center gap-1 px-2 py-1 rounded hover:bg-orange-100 text-orange-600 font-semibold text-xs mr-1">
@@ -261,6 +308,60 @@ export default function Payroll() {
               <button
                 className="bg-gray-400 text-white px-4 py-2 rounded font-semibold hover:bg-gray-600 transition"
                 onClick={() => { setShowModal(false); setEditingId(null); setNewName(""); setNewRole(""); setNewSalary(""); }}
+              >
+                Cancel
+              </button>
+            </Dialog.Panel>
+          </Dialog>
+        )}
+        {editingAttendanceId !== null && (
+          <Dialog open={editingAttendanceId !== null} onClose={() => { setEditingAttendanceId(null); setAttendancePresent(false); setAttendanceLeaves(0); }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <Dialog.Panel className="bg-white p-6 rounded-xl shadow-xl w-[350px]">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><UserCheck className="h-5 w-5 text-orange-400" /> Update Attendance</h3>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Present</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setAttendancePresent(true)}
+                    className={`flex-1 py-2 rounded font-semibold transition ${
+                      attendancePresent
+                        ? "bg-green-500 text-white"
+                        : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    }`}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => setAttendancePresent(false)}
+                    className={`flex-1 py-2 rounded font-semibold transition ${
+                      !attendancePresent
+                        ? "bg-red-500 text-white"
+                        : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                    }`}
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2">Leaves</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-full border rounded px-3 py-2"
+                  value={attendanceLeaves}
+                  onChange={e => setAttendanceLeaves(Math.max(0, Number(e.target.value)))}
+                />
+              </div>
+              <button
+                className="bg-orange-500 text-white px-4 py-2 rounded font-semibold hover:bg-orange-600 transition mr-2"
+                onClick={handleUpdateAttendance}
+              >
+                <UserCheck className="h-4 w-4 inline mr-1" /> Update
+              </button>
+              <button
+                className="bg-gray-400 text-white px-4 py-2 rounded font-semibold hover:bg-gray-600 transition"
+                onClick={() => { setEditingAttendanceId(null); setAttendancePresent(false); setAttendanceLeaves(0); }}
               >
                 Cancel
               </button>

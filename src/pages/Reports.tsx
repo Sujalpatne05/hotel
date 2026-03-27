@@ -144,7 +144,7 @@ const Reports = () => {
         `Generated: ${new Date().toLocaleString("en-IN")}`,
         "",
         "SUMMARY",
-        `Total Revenue,₹${Math.round(overview.revenue).toLocaleString("en-IN")}`,
+        `Total Revenue,Rs ${Math.round(overview.revenue).toLocaleString("en-IN")}`,
         `Total Orders,${overview.totalOrders}`,
         `Total Customers,${overview.totalCustomers}`,
         "",
@@ -154,40 +154,70 @@ const Reports = () => {
         "",
         "REVENUE BY ORDER TYPE",
         "Type,Amount",
-        ...revenueByType.map((item) => `${item.name},₹${item.value}`),
+        ...revenueByType.map((item) => `${item.name},Rs ${item.value}`),
       ];
-      const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
+      const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `restaurant-report-${new Date().toISOString().split("T")[0]}.csv`;
-      anchor.click();
-      URL.revokeObjectURL(url);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `restaurant-report-${new Date().toISOString().split("T")[0]}.csv`);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       return;
     }
 
     const doc = new jsPDF();
     let yPos = 15;
-    doc.setFontSize(16);
+    
+    // Title
+    doc.setFontSize(18);
+    doc.setFont(undefined, "bold");
     doc.text("Restaurant Report", 10, yPos);
     yPos += 10;
+    
+    // Generated date
     doc.setFontSize(10);
+    doc.setFont(undefined, "normal");
     doc.text(`Generated: ${new Date().toLocaleString("en-IN")}`, 10, yPos);
     yPos += 8;
 
+    // Summary section
+    doc.setFont(undefined, "bold");
     doc.text("SUMMARY", 10, yPos);
     yPos += 6;
-    doc.text(`Total Revenue: ₹${Math.round(overview.revenue).toLocaleString("en-IN")}`, 12, yPos);
+    doc.setFont(undefined, "normal");
+    doc.text(`Total Revenue: Rs ${Math.round(overview.revenue).toLocaleString("en-IN")}`, 12, yPos);
     yPos += 5;
     doc.text(`Total Orders: ${overview.totalOrders}`, 12, yPos);
     yPos += 5;
     doc.text(`Total Customers: ${overview.totalCustomers}`, 12, yPos);
     yPos += 10;
 
+    // Top Selling Items section
+    doc.setFont(undefined, "bold");
     doc.text("TOP SELLING ITEMS", 10, yPos);
     yPos += 6;
+    doc.setFont(undefined, "normal");
     topSellingItems.slice(0, 10).forEach((item, idx) => {
       doc.text(`${idx + 1}. ${item.name} - ${item.count} units`, 12, yPos);
+      yPos += 5;
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 15;
+      }
+    });
+
+    yPos += 5;
+    
+    // Revenue by Order Type section
+    doc.setFont(undefined, "bold");
+    doc.text("REVENUE BY ORDER TYPE", 10, yPos);
+    yPos += 6;
+    doc.setFont(undefined, "normal");
+    revenueByType.forEach((item) => {
+      doc.text(`${item.name}: Rs ${item.value.toLocaleString("en-IN")}`, 12, yPos);
       yPos += 5;
     });
 

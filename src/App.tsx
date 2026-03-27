@@ -38,8 +38,7 @@ import NotFound from "./pages/NotFound";
 import RecipeManagement from "./pages/RecipeManagement";
 import AdminUsers from "./pages/AdminUsers";
 import MyProfile from "./pages/MyProfile";
-import ChangePassword from "./pages/ChangePassword";
-import { getAuthToken, getStoredRole, isPasswordChangeRequired } from "@/lib/session";
+import { getAuthToken, getStoredRole } from "@/lib/session";
 
 const queryClient = new QueryClient();
 
@@ -47,12 +46,6 @@ const getRole = () => {
   const token = getAuthToken();
   if (!token) return null;
   return getStoredRole();
-};
-
-const shouldForcePasswordChange = () => {
-  const token = getAuthToken();
-  if (!token) return false;
-  return isPasswordChangeRequired();
 };
 
 const isSuperAdmin = () => getRole() === "superadmin";
@@ -96,66 +89,65 @@ const App = () => {
           <Routes>
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/" element={
-            shouldForcePasswordChange()
-              ? <ChangePassword />
-              : getRole() === "admin"
-              ? <Index />
-              : getRole() === "superadmin"
-                ? <SuperAdminDashboard />
+            getRole() === "admin"
+            ? <Index />
+            : getRole() === "superadmin"
+              ? <SuperAdminDashboard />
+              : getRole() === "manager" || getRole() === "staff"
+                ? <Orders />
                 : <AdminLogin />
           } />
-          <Route path="/change-password" element={getAuthToken() ? <ChangePassword /> : <AdminLogin />} />
           <Route path="/superadmin-login" element={<SuperAdminLogin />} />
           <Route path="/billing" element={
-            getRole() === "admin" ? <Billing /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager" || getRole() === "staff") ? <Billing /> : <AdminLogin />
           } />
           <Route path="/bill-settlement" element={
-            getRole() === "admin" ? <BillSettlement /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager" || getRole() === "staff") ? <BillSettlement /> : <AdminLogin />
           } />
           <Route path="/payroll" element={
-            getRole() === "admin" ? <Payroll /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager") ? <Payroll /> : <AdminLogin />
           } />
           <Route path="/tasks" element={
-            getRole() === "admin" ? <Tasks /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager" || getRole() === "staff") ? <Tasks /> : <AdminLogin />
           } />
           <Route path="/menu" element={
-            getRole() === "admin" ? <MenuManagement /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager") ? <MenuManagement /> : <AdminLogin />
           } />
           <Route path="/orders" element={
-            getRole() === "admin" ? <Orders /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager" || getRole() === "staff") ? <Orders /> : <AdminLogin />
           } />
           <Route path="/inventory" element={
-            getRole() === "admin" ? <Inventory /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager") ? <Inventory /> : <AdminLogin />
           } />
           <Route path="/crm" element={
-            getRole() === "admin" ? <CRM /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager") ? <CRM /> : <AdminLogin />
           } />
           <Route path="/reports" element={
-            getRole() === "admin" ? <Reports /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager") ? <Reports /> : <AdminLogin />
           } />
           <Route path="/payments-overview" element={
-            getRole() === "admin" ? <PaymentsOverview /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager" || getRole() === "staff") ? <PaymentsOverview /> : <AdminLogin />
           } />
           <Route path="/recipe-management" element={
-            getRole() === "admin" ? <RecipeManagement /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager") ? <RecipeManagement /> : <AdminLogin />
           } />
           <Route path="/admin-users" element={
             getRole() === "admin" ? <AdminUsers /> : <AdminLogin />
           } />
           <Route path="/my-profile" element={
-            getRole() === "admin" ? <MyProfile /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager" || getRole() === "staff") ? <MyProfile /> : <AdminLogin />
           } />
           <Route path="/table-management" element={
-            getRole() === "admin" ? <TableManagement /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager") ? <TableManagement /> : <AdminLogin />
           } />
           <Route path="/reservations" element={
-            getRole() === "admin" ? <Reservations /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager" || getRole() === "staff") ? <Reservations /> : <AdminLogin />
           } />
           <Route path="/kitchen-display" element={
-            getRole() === "admin" ? <KitchenDisplay /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager" || getRole() === "staff") ? <KitchenDisplay /> : <AdminLogin />
           } />
           <Route path="/delivery-management" element={
-            getRole() === "admin" ? <DeliveryManagement /> : <AdminLogin />
+            (getRole() === "admin" || getRole() === "manager") ? <DeliveryManagement /> : <AdminLogin />
           } />
           <Route path="/table-qr/:tableId" element={<TableQROrdering />} />
           <Route path="/table-payment/:tableId/:orderId" element={<TablePayment />} />
@@ -168,6 +160,7 @@ const App = () => {
           <Route path="/superadmin-analytics" element={isSuperAdmin() ? <SuperAdminAnalytics /> : <SuperAdminLogin />} />
           <Route path="/superadmin-settings" element={isSuperAdmin() ? <SuperAdminSettings /> : <SuperAdminLogin />} />
           <Route path="/superadmin-support" element={isSuperAdmin() ? <SuperAdminSupport /> : <SuperAdminLogin />} />
+          <Route path="/change-password" element={<Index />} />
           <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

@@ -21,7 +21,7 @@ import {
   Line,
 } from "recharts";
 import React from "react";
-import { clearAuthSession, getStoredRestaurantName } from "@/lib/session";
+import { getStoredRestaurantName } from "@/lib/session";
 
 const revenueData = [
   { day: "Mon", revenue: 12400 },
@@ -85,10 +85,6 @@ const Dashboard = () => {
     manager: "Access to Billing and Reports only",
     staff: "Access to Orders only",
   };
-  const handleLogout = () => {
-    clearAuthSession();
-    window.location.href = "/admin-login";
-  };
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -100,22 +96,18 @@ const Dashboard = () => {
             </p>
             {/* Role and Permissions removed as per new dashboard design */}
           </div>
-          <button
-            onClick={handleLogout}
-            className="bg-red-600 text-white px-4 py-2 rounded font-semibold hover:bg-red-700 transition"
-          >
-            Logout
-          </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="Today's Revenue"
-            value="₹35,200"
-            change="+12.5% from yesterday"
-            changeType="positive"
-            icon={<IndianRupee className="h-5 w-5" />}
-          />
+          {userRole === "admin" && (
+            <StatCard
+              title="Today's Revenue"
+              value="₹35,200"
+              change="+12.5% from yesterday"
+              changeType="positive"
+              icon={<IndianRupee className="h-5 w-5" />}
+            />
+          )}
           <StatCard
             title="Total Orders"
             value="128"
@@ -123,20 +115,24 @@ const Dashboard = () => {
             changeType="positive"
             icon={<ShoppingCart className="h-5 w-5" />}
           />
-          <StatCard
-            title="Active Customers"
-            value="342"
-            change="+24 this week"
-            changeType="positive"
-            icon={<Users className="h-5 w-5" />}
-          />
-          <StatCard
-            title="Avg Order Value"
-            value="₹275"
-            change="-2.1% from last week"
-            changeType="negative"
-            icon={<TrendingUp className="h-5 w-5" />}
-          />
+          {userRole === "admin" && (
+            <StatCard
+              title="Active Customers"
+              value="342"
+              change="+24 this week"
+              changeType="positive"
+              icon={<Users className="h-5 w-5" />}
+            />
+          )}
+          {userRole === "admin" && (
+            <StatCard
+              title="Avg Order Value"
+              value="₹275"
+              change="-2.1% from last week"
+              changeType="negative"
+              icon={<TrendingUp className="h-5 w-5" />}
+            />
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

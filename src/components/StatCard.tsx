@@ -93,9 +93,9 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const notifications = [
-    { icon: "<span class='text-lg'>🔔</span>", text: "New order received!", onClick: () => navigate("/orders?highlight=new") },
-    { icon: "<span class='text-lg'>⚠️</span>", text: "Low stock warning!", onClick: null },
-    { icon: "<span class='text-lg'>💰</span>", text: "High revenue milestone!", onClick: null },
+    { icon: "<span class='text-lg'>🔔</span>", text: "New order received!", onClick: () => { navigate("/orders"); setOpen(false); } },
+    { icon: "<span class='text-lg'>⚠️</span>", text: "Low stock warning!", onClick: () => { navigate("/inventory"); setOpen(false); } },
+    { icon: "<span class='text-lg'>💰</span>", text: "High revenue milestone!", onClick: () => { navigate("/reports"); setOpen(false); } },
   ];
 
   return (
@@ -117,8 +117,8 @@ export function NotificationBell() {
             {notifications.map((n, i) => (
               <li
                 key={i}
-                className={`flex items-center gap-2 text-sm cursor-pointer hover:bg-orange-50 rounded px-2 py-1 ${n.onClick ? "font-semibold text-orange-700" : ""}`}
-                onClick={n.onClick || undefined}
+                className="flex items-center gap-2 text-sm cursor-pointer hover:bg-orange-50 rounded px-2 py-1 font-semibold text-orange-700 transition-colors"
+                onClick={n.onClick}
               >
                 <span dangerouslySetInnerHTML={{ __html: n.icon }} />
                 <span>{n.text}</span>

@@ -152,19 +152,37 @@ const CRM = () => {
 
         {showModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3">
-            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-[380px] relative">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-[420px] relative">
               <button className="absolute top-2 right-2 text-gray-500 hover:text-black" onClick={() => setShowModal(false)} aria-label="Close">x</button>
               <h2 className="text-lg font-bold mb-4">{editCustomer ? "Edit Customer" : "Add Customer"}</h2>
-              <form onSubmit={handleSubmit} className="space-y-3">
-                <input name="name" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Name" className="w-full border rounded px-2 py-1" required />
-                <input name="email" value={form.email} onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="Email" className="w-full border rounded px-2 py-1" required />
-                <input name="phone" value={form.phone} onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))} placeholder="Phone" className="w-full border rounded px-2 py-1" required />
-                <input name="visits" type="number" min={0} value={form.visits} onChange={(e) => setForm((prev) => ({ ...prev, visits: Number(e.target.value) }))} placeholder="Visits" className="w-full border rounded px-2 py-1" />
-                <input name="totalSpent" type="number" min={0} value={form.totalSpent} onChange={(e) => setForm((prev) => ({ ...prev, totalSpent: Number(e.target.value) }))} placeholder="Total Spent" className="w-full border rounded px-2 py-1" />
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={form.vip} onChange={(e) => setForm((prev) => ({ ...prev, vip: e.target.checked }))} /> VIP Customer
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <input name="name" value={form.name} onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))} placeholder="Enter customer name" className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                  <input name="email" type="email" value={form.email} onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))} placeholder="Enter email address" className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                  <input name="phone" value={form.phone} onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))} placeholder="Enter phone number" className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500" required />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Visits</label>
+                    <input name="visits" type="number" min={0} value={form.visits} onChange={(e) => setForm((prev) => ({ ...prev, visits: Number(e.target.value) }))} placeholder="0" className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Spent (₹)</label>
+                    <input name="totalSpent" type="number" min={0} value={form.totalSpent} onChange={(e) => setForm((prev) => ({ ...prev, totalSpent: Number(e.target.value) }))} placeholder="0" className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500" />
+                  </div>
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" checked={form.vip} onChange={(e) => setForm((prev) => ({ ...prev, vip: e.target.checked }))} className="w-4 h-4 rounded" /> 
+                  <span className="font-medium">Mark as VIP Customer</span>
                 </label>
-                <button type="submit" className="w-full bg-orange-500 text-white py-2 rounded">{editCustomer ? "Save Changes" : "Add"}</button>
+                <button type="submit" className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 rounded transition">{editCustomer ? "Save Changes" : "Add Customer"}</button>
               </form>
             </div>
           </div>

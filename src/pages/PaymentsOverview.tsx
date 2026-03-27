@@ -181,36 +181,7 @@ export default function PaymentsOverview() {
         </div>
 
         {/* Payment Method Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* All Orders */}
-          <Card
-            className={`cursor-pointer transition-all ${
-              selectedPaymentMethod === "all" ? "ring-2 ring-orange-500 shadow-lg" : "hover:shadow-md"
-            }`}
-            onClick={() => setSelectedPaymentMethod("all")}
-          >
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">All Orders</CardTitle>
-                <div className="bg-orange-100 p-2 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-orange-600" />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <p className="text-3xl font-bold text-orange-600">₹{paymentStats.all.total.toLocaleString("en-IN")}</p>
-                <p className="text-sm text-gray-600">{paymentStats.all.count} orders</p>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                  <div
-                    className="bg-orange-600 h-2 rounded-full"
-                    style={{ width: "100%" }}
-                  ></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Card Payments */}
           <Card
             className={`cursor-pointer transition-all ${

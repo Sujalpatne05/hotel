@@ -1,13 +1,14 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Search, AlertTriangle, Package } from "lucide-react";
+import { Plus, Search, AlertTriangle, Package, X } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StatCard } from "@/components/StatCard";
 import { buildAuthHeaders, clearAuthSession, isAuthError } from "@/lib/session";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const API_BASE_URL = (() => {
   const configured = (import.meta.env.VITE_API_URL || "").trim();
@@ -34,20 +35,23 @@ const formatUpdatedLabel = (iso: string) => {
   return date.toLocaleDateString();
 };
 
+const CATEGORIES = ["Meat", "Dairy", "Grains", "Vegetables", "Spices", "Oils", "Other"];
+const UNITS = ["kg", "L", "pieces", "boxes", "packets"];
+
 const Inventory = () => {
   const [items, setItems] = useState<InventoryItem[]>([]);
-  const [showModal, setShowModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [restockModal, setRestockModal] = useState<{ open: boolean; itemId: number | null }>({ open: false, itemId: null });
   const [restockQty, setRestockQty] = useState(0);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [newItem, setNewItem] = useState({
     name: "",
-    unit: "",
+    unit: "kg",
     stock: 0,
     minStock: 0,
     maxStock: 0,
-    category: "",
+    category: "Other",
   });
 
   const loadItems = useCallback(async () => {
@@ -58,7 +62,7 @@ const Inventory = () => {
       return;
     }
 
-    const response = await fetch(`${API_BASE_URL}/inventory`, { headers });
+    const response = await fetch(`${API_BASE_URL}/api/inventory`, { headers });
     if (isAuthError(response.status)) {
       clearAuthSession();
       window.location.href = "/admin-login";
@@ -88,11 +92,11 @@ const Inventory = () => {
   }, [loadItems]);
 
   const handleModalClose = () => {
-    setShowModal(false);
-    setNewItem({ name: "", unit: "", stock: 0, minStock: 0, maxStock: 0, category: "" });
+    setShowAddModal(false);
+    setNewItem({ name: "", unit: "kg", stock: 0, minStock: 0, maxStock: 0, category: "Other" });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setNewItem((prev) => ({
       ...prev,
@@ -105,16 +109,16 @@ const Inventory = () => {
     const headers = buildAuthHeaders();
     if (!headers) return;
 
-    const response = await fetch(`${API_BASE_URL}/inventory`, {
+    const response = await fetch(`${API_BASE_URL}/api/inventory`, {
       method: "POST",
       headers,
       body: JSON.stringify({
         name: newItem.name.trim(),
-        unit: newItem.unit.trim(),
+        unit: newItem.unit,
         stock: Number(newItem.stock),
-        minStock: Number(newItem.minStock),
-        maxStock: Number(newItem.maxStock),
-        category: newItem.category.trim(),
+        min_stock: Number(newItem.minStock),
+        max_stock: Number(newItem.maxStock),
+        category: newItem.category,
       }),
     });
 
@@ -144,7 +148,7 @@ const Inventory = () => {
     const headers = buildAuthHeaders();
     if (!headers) return;
 
-    const response = await fetch(`${API_BASE_URL}/inventory/${restockModal.itemId}`, {
+    const response = await fetch(`${API_BASE_URL}/api/inventory/${restockModal.itemId}`, {
       method: "PATCH",
       headers,
       body: JSON.stringify({ stock: Number(restockQty) }),
@@ -174,28 +178,10 @@ const Inventory = () => {
             <h1 className="text-2xl font-bold">Inventory</h1>
             <p className="text-muted-foreground">Track stock levels and supplies</p>
           </div>
-          <Button className="gradient-warm text-primary-foreground gap-2" onClick={() => setShowModal(true)}>
+          <Button className="gradient-warm text-primary-foreground gap-2" onClick={() => setShowAddModal(true)}>
             <Plus className="h-4 w-4" /> Add Stock
           </Button>
         </div>
-
-        {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div className="bg-white rounded-lg shadow-lg p-6 w-[350px] relative">
-              <button className="absolute top-2 right-2 text-gray-500 hover:text-black" onClick={handleModalClose} aria-label="Close">x</button>
-              <h2 className="text-lg font-bold mb-4">Add Stock Item</h2>
-              <form onSubmit={handleFormSubmit} className="space-y-3">
-                <input name="name" value={newItem.name} onChange={handleInputChange} placeholder="Item Name" className="w-full border rounded px-2 py-1" required />
-                <input name="unit" value={newItem.unit} onChange={handleInputChange} placeholder="Unit (kg/L)" className="w-full border rounded px-2 py-1" required />
-                <input name="stock" type="number" value={newItem.stock} onChange={handleInputChange} placeholder="Stock" className="w-full border rounded px-2 py-1" required />
-                <input name="minStock" type="number" value={newItem.minStock} onChange={handleInputChange} placeholder="Min Stock" className="w-full border rounded px-2 py-1" required />
-                <input name="maxStock" type="number" value={newItem.maxStock} onChange={handleInputChange} placeholder="Max Stock" className="w-full border rounded px-2 py-1" required />
-                <input name="category" value={newItem.category} onChange={handleInputChange} placeholder="Category" className="w-full border rounded px-2 py-1" required />
-                <button type="submit" className="w-full bg-orange-500 text-white py-2 rounded">Add</button>
-              </form>
-            </div>
-          </div>
-        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatCard title="Total Items" value={`${filteredItems.length}`} icon={<Package className="h-5 w-5" />} />
@@ -261,21 +247,145 @@ const Inventory = () => {
               </Card>
             );
           })}
-
-          {restockModal.open && restockModal.itemId !== null && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-              <div className="bg-white rounded-lg shadow-lg p-6 w-[350px] relative">
-                <button className="absolute top-2 right-2 text-gray-500 hover:text-black" onClick={handleRestockClose} aria-label="Close">x</button>
-                <h2 className="text-lg font-bold mb-4">Restock Item</h2>
-                <form onSubmit={handleRestockSubmit} className="space-y-3">
-                  <input type="number" min="0" value={restockQty} onChange={(e) => setRestockQty(Number(e.target.value))} className="w-full border rounded px-2 py-1" required />
-                  <button type="submit" className="w-full bg-orange-500 text-white py-2 rounded">Update Stock</button>
-                </form>
-              </div>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Add Stock Modal */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Stock Item</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleFormSubmit} className="space-y-4">
+            {/* Item Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Item Name *</label>
+              <Input
+                name="name"
+                value={newItem.name}
+                onChange={handleInputChange}
+                placeholder="e.g., Chicken, Paneer, Rice"
+                required
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>
+              <select
+                name="category"
+                value={newItem.category}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                required
+              >
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Unit */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Unit *</label>
+              <select
+                name="unit"
+                value={newItem.unit}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary"
+                required
+              >
+                {UNITS.map((unit) => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Current Stock */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Current Stock *</label>
+              <Input
+                name="stock"
+                type="number"
+                min="0"
+                value={newItem.stock}
+                onChange={handleInputChange}
+                placeholder="0"
+                required
+              />
+            </div>
+
+            {/* Min Stock */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Minimum Stock Level *</label>
+              <Input
+                name="minStock"
+                type="number"
+                min="0"
+                value={newItem.minStock}
+                onChange={handleInputChange}
+                placeholder="Alert when stock falls below this"
+                required
+              />
+            </div>
+
+            {/* Max Stock */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Maximum Stock Level *</label>
+              <Input
+                name="maxStock"
+                type="number"
+                min="0"
+                value={newItem.maxStock}
+                onChange={handleInputChange}
+                placeholder="Target stock level"
+                required
+              />
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-2 pt-4">
+              <Button type="button" variant="outline" className="flex-1" onClick={handleModalClose}>
+                Cancel
+              </Button>
+              <Button type="submit" className="flex-1 gradient-warm text-primary-foreground">
+                Add Item
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Restock Modal */}
+      <Dialog open={restockModal.open} onOpenChange={handleRestockClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Restock Item</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleRestockSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">New Stock Quantity *</label>
+              <Input
+                type="number"
+                min="0"
+                value={restockQty}
+                onChange={(e) => setRestockQty(Number(e.target.value))}
+                placeholder="Enter new stock quantity"
+                required
+              />
+            </div>
+
+            <div className="flex gap-2 pt-4">
+              <Button type="button" variant="outline" className="flex-1" onClick={handleRestockClose}>
+                Cancel
+              </Button>
+              <Button type="submit" className="flex-1 gradient-warm text-primary-foreground">
+                Update Stock
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

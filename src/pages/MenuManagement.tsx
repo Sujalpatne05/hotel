@@ -132,8 +132,13 @@ const MenuManagement = () => {
     const { name, value, type } = e.target;
     const checked = type === "checkbox" ? (e.target as HTMLInputElement).checked : false;
     const newValue = type === "checkbox" ? checked : value;
-    console.log(`Field changed: ${name} = ${newValue}`);
-    setNewItem((prev) => ({ ...prev, [name]: newValue }));
+    console.log(`Field changed: ${name} = "${newValue}" (type: ${type})`);
+    console.log(`Current newItem before update:`, newItem);
+    setNewItem((prev) => {
+      const updated = { ...prev, [name]: newValue };
+      console.log(`Updated newItem:`, updated);
+      return updated;
+    });
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,8 +152,11 @@ const MenuManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log("Form state before validation:", newItem);
+    
     // Validate category is selected
     if (!newItem.category || newItem.category.trim() === "") {
+      console.error("Category validation failed. Current category:", newItem.category);
       setError("Please select a category");
       return;
     }
@@ -165,7 +173,7 @@ const MenuManagement = () => {
       image_url: imageUrl,
     };
     
-    console.log("Submitting payload:", payload);
+    console.log("Final payload being sent:", JSON.stringify(payload, null, 2));
 
     try {
       setError("");
@@ -185,6 +193,9 @@ const MenuManagement = () => {
       );
 
       const data = await response.json();
+      console.log("Response from backend:", data);
+      console.log("Response status:", response.status);
+      console.log("Response headers:", response.headers);
       if (response.status === 401 || response.status === 403) {
         goToLogin(data?.error || "Session expired. Please login again.");
         return;
@@ -195,6 +206,7 @@ const MenuManagement = () => {
       }
 
       const savedItem = toUiItem(data);
+      console.log("Saved item after toUiItem:", savedItem);
       if (isEdit) {
         setMenuItems((prev) => prev.map((item) => (item.id === savedItem.id ? { ...item, ...savedItem } : item)));
       } else {
@@ -279,7 +291,7 @@ const MenuManagement = () => {
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Name</label>
-                        <input type="text" name="name" value={newItem.name} onChange={handleChange} required className="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
+                        <input type="text" name="name" value={newItem.name} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Category</label>
@@ -292,7 +304,7 @@ const MenuManagement = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Price</label>
-                        <input type="number" name="price" value={newItem.price} onChange={handleChange} required className="mt-1 block w-full border-gray-300 rounded-md shadow-sm" />
+                        <input type="number" name="price" value={newItem.price} onChange={handleChange} required className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2" />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Food Image</label>

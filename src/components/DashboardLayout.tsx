@@ -1,10 +1,10 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { NotificationBell, ThemeToggle, AISuggestionPanel } from "@/components/StatCard";
-import { UserCog } from "lucide-react";
+import { UserCog, LogOut } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { buildAuthHeaders } from "@/lib/session";
+import { buildAuthHeaders, clearAuthSession } from "@/lib/session";
 
 const API_BASE_URL = (() => {
   const configured = (import.meta.env.VITE_API_URL || "").trim();
@@ -35,6 +35,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     fetchLogo();
   }, []);
 
+  const handleLogout = () => {
+    clearAuthSession();
+    window.location.href = "/admin-login";
+  };
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -45,6 +50,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-1 sm:gap-2 flex-wrap justify-end">
               <NotificationBell />
               <ThemeToggle />
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                title="Logout"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline text-sm font-medium">Logout</span>
+              </button>
             </div>
           </header>
           <main className="flex-1 p-4 sm:p-6 overflow-auto">{children}</main>
