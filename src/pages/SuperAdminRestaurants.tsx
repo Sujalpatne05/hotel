@@ -248,27 +248,36 @@ export default function SuperAdminRestaurants() {
       setError("");
       setMessage("");
 
+      const payload = {
+        name: form.name.trim(),
+        owner: form.owner.trim(),
+        city: form.city.trim(),
+        plan: form.plan,
+        status: "Active",
+        logo: form.logo || null,
+        subscriptionStartDate: form.subscriptionStartDate,
+        subscriptionExpiryDate: form.subscriptionExpiryDate,
+        // Include admin credentials if quick admin is enabled
+        ...(quickAdminEnabled && {
+          admin_name: adminOneForm.name.trim(),
+          admin_email: adminOneForm.email.trim(),
+          admin_password: adminOneForm.temporaryPassword.trim(),
+        }),
+      };
+      
+      console.log("[RESTAURANT] Sending payload:", payload);
+      console.log("[RESTAURANT] Headers:", headers);
+      
       const createResponse = await fetch(`${API_BASE_URL}/superadmin/restaurants`, {
         method: "POST",
         headers,
-        body: JSON.stringify({
-          name: form.name.trim(),
-          owner: form.owner.trim(),
-          city: form.city.trim(),
-          plan: form.plan,
-          status: "Active",
-          logo: form.logo || null,
-          subscriptionStartDate: form.subscriptionStartDate,
-          subscriptionExpiryDate: form.subscriptionExpiryDate,
-          // Include admin credentials if quick admin is enabled
-          ...(quickAdminEnabled && {
-            admin_name: adminOneForm.name.trim(),
-            admin_email: adminOneForm.email.trim(),
-            admin_password: adminOneForm.temporaryPassword.trim(),
-          }),
-        }),
+        body: JSON.stringify(payload),
       });
+      
+      console.log("[RESTAURANT] Response status:", createResponse.status);
       const createData = await createResponse.json();
+      console.log("[RESTAURANT] Response data:", createData);
+      
       if (!createResponse.ok) {
         setError(createData?.error || "Unable to create restaurant.");
         return;

@@ -304,7 +304,8 @@ const server = createServer(async (req, res) => {
       
       if (user) {
         console.log(`[LOGIN] ✅ Login successful for user: ${user.email}`);
-        const token = `token_${user.role}_${Date.now()}`;
+        const restaurantId = user.restaurant_id || 0;
+        const token = `token_${user.role}_${restaurantId}_${Date.now()}`;
         send(res, 200, {
           token,
           user: {
@@ -870,9 +871,21 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "POST" && path === "/superadmin/restaurants") {
+      // Check if user is superadmin
+      const user = extractUser(req);
+      if (!user || user.role !== "superadmin") {
+        console.log("[RESTAURANT] ❌ Unauthorized - User is not superadmin");
+        send(res, 403, { error: "Only superadmin can create restaurants" });
+        return;
+      }
+      
       const body = await parseBody(req);
+      console.log("[RESTAURANT] POST request received. Body:", JSON.stringify(body, null, 2));
+      
       if (!body.name || !body.owner) {
-        send(res, 400, { error: "Invalid restaurant payload" });
+        console.log("[RESTAURANT] ❌ Validation failed - Missing name or owner");
+        console.log("[RESTAURANT] Received body:", { name: body.name, owner: body.owner });
+        send(res, 400, { error: "Invalid restaurant payload - name and owner are required" });
         return;
       }
       const restaurant = {
