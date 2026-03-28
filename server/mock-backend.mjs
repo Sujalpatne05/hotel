@@ -752,8 +752,64 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    // PATCH /superadmin/support/:id - Update support ticket
+    if (req.method === "PATCH" && path.match(/^\/superadmin\/support\/\d+$/)) {
+      const id = Number(path.split("/").pop());
+      const body = await parseBody(req);
+      const index = supportTickets.findIndex(t => t.id === id);
+      
+      if (index === -1) {
+        send(res, 404, { error: "Ticket not found" });
+        return;
+      }
+      
+      if (body.subject) supportTickets[index].subject = String(body.subject).trim();
+      if (body.restaurant) supportTickets[index].restaurant = String(body.restaurant).trim();
+      if (body.status) supportTickets[index].status = String(body.status);
+      
+      console.log(`[SUPPORT] ✅ Updated ticket ${id}`);
+      send(res, 200, supportTickets[index]);
+      return;
+    }
+
+    // DELETE /superadmin/support/:id - Delete support ticket
+    if (req.method === "DELETE" && path.match(/^\/superadmin\/support\/\d+$/)) {
+      const id = Number(path.split("/").pop());
+      const index = supportTickets.findIndex(t => t.id === id);
+      
+      if (index === -1) {
+        send(res, 404, { error: "Ticket not found" });
+        return;
+      }
+      
+      supportTickets.splice(index, 1);
+      console.log(`[SUPPORT] ✅ Deleted ticket ${id}`);
+      send(res, 200, { success: true, message: "Ticket deleted" });
+      return;
+    }
+
     if (req.method === "GET" && path === "/superadmin/settings") {
       send(res, 200, systemSettings);
+      return;
+    }
+
+    // PATCH /superadmin/settings/:id - Toggle system setting
+    if (req.method === "PATCH" && path.match(/^\/superadmin\/settings\/\d+$/)) {
+      const id = Number(path.split("/").pop());
+      const body = await parseBody(req);
+      const index = systemSettings.findIndex(s => s.id === id);
+      
+      if (index === -1) {
+        send(res, 404, { error: "Setting not found" });
+        return;
+      }
+      
+      if (body.enabled !== undefined) {
+        systemSettings[index].enabled = Boolean(body.enabled);
+      }
+      
+      console.log(`[SETTINGS] ✅ Updated setting ${id}: enabled=${systemSettings[index].enabled}`);
+      send(res, 200, systemSettings[index]);
       return;
     }
 
@@ -974,6 +1030,92 @@ const server = createServer(async (req, res) => {
         role: newUser.role,
         restaurant_id: newUser.restaurant_id,
         restaurant_name: newUser.restaurant_name,
+      });
+      return;
+    }
+
+    // PATCH /superadmin/users/:id - Toggle user active status
+    if (req.method === "PATCH" && path.match(/^\/superadmin\/users\/\d+$/)) {
+      const userId = Number(path.split("/").pop());
+      const body = await parseBody(req);
+      const userIndex = users.findIndex(u => u.id === userId);
+      
+      if (userIndex === -1) {
+        send(res, 404, { error: "User not found" });
+        return;
+      }
+
+      // Update user status
+      if (body.isActive !== undefined) {
+        users[userIndex].is_active = Boolean(body.isActive);
+      }
+
+      console.log(`[USER] ✅ Updated user ${userId}: is_active=${users[userIndex].is_active}`);
+      
+      send(res, 200, {
+        id: users[userIndex].id,
+        name: users[userIndex].name,
+        email: users[userIndex].email,
+        role: users[userIndex].role,
+        restaurant_id: users[userIndex].restaurant_id,
+        restaurant_name: users[userIndex].restaurant_name,
+        is_active: users[userIndex].is_active,
+        must_change_password: users[userIndex].must_change_password || false,
+      });
+      return;
+    }
+
+    // POST /superadmin/users/:id/reset-password - Reset user password
+    if (req.method === "POST" && path.match(/^\/superadmin\/users\/\d+\/reset-password$/)) {
+      const userId = Number(path.split("/")[3]);
+      const body = await parseBody(req);
+      const userIndex = users.findIndex(u => u.id === userId);
+      
+      if (userIndex === -1) {
+        send(res, 404, { error: "User not found" });
+        return;
+      }
+
+      if (!body.temporaryPassword || body.temporaryPassword.length < 8) {
+        send(res, 400, { error: "Temporary password must be at least 8 characters" });
+        return;
+      }
+
+      // Update password and set must_change_password flag
+      users[userIndex].password = String(body.temporaryPassword).trim();
+      users[userIndex].must_change_password = true;
+
+      console.log(`[USER] ✅ Reset password for user ${userId}`);
+      
+      send(res, 200, {
+        success: true,
+        message: "Password reset successfully",
+      });
+      return;
+    }
+
+    // DELETE /superadmin/users/:id - Delete user
+    if (req.method === "DELETE" && path.match(/^\/superadmin\/users\/\d+$/)) {
+      const userId = Number(path.split("/").pop());
+      const userIndex = users.findIndex(u => u.id === userId);
+      
+      if (userIndex === -1) {
+        send(res, 404, { error: "User not found" });
+        return;
+      }
+
+      // Prevent deleting super admin
+      if (users[userIndex].role === "superadmin") {
+        send(res, 403, { error: "Cannot delete super admin user" });
+        return;
+      }
+
+      const deletedUser = users.splice(userIndex, 1)[0];
+      console.log(`[USER] ✅ Deleted user ${userId}: ${deletedUser.email}`);
+      
+      send(res, 200, {
+        success: true,
+        message: "User deleted successfully",
       });
       return;
     }

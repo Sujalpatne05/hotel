@@ -1,9 +1,14 @@
-// NEW LOGIN PAGE - NO CACHE - STAFF/MANAGER FIX
 import React, { useState, useEffect } from "react";
 import { saveAuthSession } from "@/lib/session";
 import { ChefHat, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
-const API_BASE_URL = "/api";
+const API_BASE_URL = (() => {
+  const configured = (import.meta.env.VITE_API_URL || "").trim();
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
+    return "/api";
+  }
+  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+})();
 
 const LoginFixed = () => {
   const [username, setUsername] = useState("");
