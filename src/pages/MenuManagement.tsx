@@ -132,11 +132,8 @@ const MenuManagement = () => {
     const { name, value, type } = e.target;
     const checked = type === "checkbox" ? (e.target as HTMLInputElement).checked : false;
     const newValue = type === "checkbox" ? checked : value;
-    console.log(`Field changed: ${name} = "${newValue}" (type: ${type})`);
-    console.log(`Current newItem before update:`, newItem);
     setNewItem((prev) => {
       const updated = { ...prev, [name]: newValue };
-      console.log(`Updated newItem:`, updated);
       return updated;
     });
   };
@@ -152,11 +149,8 @@ const MenuManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log("Form state before validation:", newItem);
-    
     // Validate category is selected
     if (!newItem.category || newItem.category.trim() === "") {
-      console.error("Category validation failed. Current category:", newItem.category);
       setError("Please select a category");
       return;
     }
@@ -172,8 +166,6 @@ const MenuManagement = () => {
       available: newItem.available,
       image_url: imageUrl,
     };
-    
-    console.log("Final payload being sent:", JSON.stringify(payload, null, 2));
 
     try {
       setError("");
@@ -193,9 +185,6 @@ const MenuManagement = () => {
       );
 
       const data = await response.json();
-      console.log("Response from backend:", data);
-      console.log("Response status:", response.status);
-      console.log("Response headers:", response.headers);
       if (response.status === 401 || response.status === 403) {
         goToLogin(data?.error || "Session expired. Please login again.");
         return;
@@ -206,7 +195,6 @@ const MenuManagement = () => {
       }
 
       const savedItem = toUiItem(data);
-      console.log("Saved item after toUiItem:", savedItem);
       if (isEdit) {
         setMenuItems((prev) => prev.map((item) => (item.id === savedItem.id ? { ...item, ...savedItem } : item)));
       } else {

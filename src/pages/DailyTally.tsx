@@ -56,7 +56,7 @@ export default function DailyTally() {
           setOrders(data);
         }
       } catch (error) {
-        console.error("Failed to load orders:", error);
+        // Daily tally load error
       } finally {
         setLoading(false);
       }

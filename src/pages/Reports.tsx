@@ -50,7 +50,7 @@ const Reports = () => {
         setOverview(overviewData);
         setOrders(Array.isArray(ordersData) ? ordersData : []);
       } catch (error) {
-        console.error(error);
+        // Reports load error
       } finally {
         setLoading(false);
       }

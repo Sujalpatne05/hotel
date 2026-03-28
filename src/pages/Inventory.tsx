@@ -82,7 +82,7 @@ const Inventory = () => {
       try {
         await loadItems();
       } catch (error) {
-        console.error(error);
+        // Inventory load error
       } finally {
         setLoading(false);
       }

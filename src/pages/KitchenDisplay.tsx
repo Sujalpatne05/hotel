@@ -114,8 +114,6 @@ export default function KitchenDisplay() {
         return;
       }
 
-      // Debug: log all orders to check table_number
-      console.log("Raw orders from API:", data);
       const mapped: KitchenOrder[] = (Array.isArray(data) ? data : []).map((order: ApiOrder) => {
         const orderType = order.orderType || "dine-in";
         const displayType = orderType === "take-away" ? "takeout" : orderType === "delivery" ? "delivery" : "dine-in";

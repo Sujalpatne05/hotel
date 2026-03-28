@@ -57,7 +57,7 @@ export default function PaymentsOverview() {
         const data = await response.json();
         setOrders(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error("Failed to load orders:", error);
+        // Payments load error
       } finally {
         setLoading(false);
       }

@@ -28,7 +28,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           setLogo(profileData.restaurantLogo);
         }
       } catch (e) {
-        console.error("Failed to fetch logo:", e);
+        // Logo fetch failed, will use default
       }
     };
 

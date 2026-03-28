@@ -66,16 +66,13 @@ export default function Orders() {
     try {
       setError("");
       const headers = buildAuthHeaders();
-      console.log("📋 Orders page loading, headers:", headers ? "✅ present" : "❌ missing");
       if (!headers) {
         goToLogin("Please login to continue.");
         return;
       }
 
-      console.log("📋 Fetching orders from:", `${API_BASE_URL}/orders`);
       const response = await fetch(`${API_BASE_URL}/orders`, { headers });
       const data = await response.json();
-      console.log("📋 Orders response:", { status: response.status, dataLength: Array.isArray(data) ? data.length : "not array" });
 
       if (isAuthError(response.status)) {
         goToLogin(data?.error || "Session expired. Please login again.");
@@ -105,10 +102,8 @@ export default function Orders() {
         };
       });
 
-      console.log("📋 Orders loaded:", mapped.length);
       setOrders(mapped);
     } catch (e) {
-      console.error("❌ Orders load error:", e);
       setError("Unable to connect to backend.");
     }
   };

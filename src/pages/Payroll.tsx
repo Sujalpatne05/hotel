@@ -62,7 +62,7 @@ export default function Payroll() {
       try {
         await loadStaff();
       } catch (error) {
-        console.error(error);
+        // Payroll load error
       } finally {
         setLoading(false);
       }

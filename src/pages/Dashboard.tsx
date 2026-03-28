@@ -47,7 +47,7 @@ export default function Dashboard() {
         setTables(Array.isArray(tablesData) ? tablesData : []);
         setInventory(Array.isArray(inventoryData) ? inventoryData : []);
       } catch (e) {
-        console.error("❌ Dashboard load error:", e);
+        // Dashboard load error
       } finally {
         setLoading(false);
       }

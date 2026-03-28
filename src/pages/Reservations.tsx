@@ -174,7 +174,6 @@ export default function Reservations() {
           }
         }
       } catch (err) {
-        console.error("Failed to update table status:", err);
         // Don't fail the reservation if table update fails
       }
 
@@ -249,7 +248,6 @@ export default function Reservations() {
             }
           }
         } catch (err) {
-          console.error("Failed to update table status:", err);
           // Don't fail the status update if table update fails
         }
       }

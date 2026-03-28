@@ -48,7 +48,7 @@ const CRM = () => {
       try {
         await loadCustomers();
       } catch (error) {
-        console.error(error);
+        // CRM load error
       } finally {
         setLoading(false);
       }

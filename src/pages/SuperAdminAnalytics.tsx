@@ -43,7 +43,7 @@ export default function SuperAdminAnalytics() {
         const [rData, oData] = await Promise.all([rRes.json(), oRes.json()]);
         setRestaurants(Array.isArray(rData) ? rData : []);
         setOrders(Array.isArray(oData) ? oData : []);
-      } catch (e) { console.error(e); }
+      } catch (e) { /* Analytics load error */ }
       finally { setLoading(false); }
     };
     load();

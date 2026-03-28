@@ -23,9 +23,7 @@ const LoginFixed = () => {
       setLoading(true);
       setError("");
 
-      console.log('[NEW LOGIN] Sending WITHOUT role parameter');
       const payload = { username: username.trim(), password: password.trim() };
-      console.log('[NEW LOGIN] Payload:', payload);
       
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
@@ -33,7 +31,6 @@ const LoginFixed = () => {
         body: JSON.stringify(payload),
       });
       const data = await response.json();
-      console.log('[NEW LOGIN] Response:', response.status, data);
 
       if (!response.ok) {
         setError(data?.error || "Invalid credentials");
@@ -57,7 +54,6 @@ const LoginFixed = () => {
       
       window.location.href = data.user.role === "superadmin" ? "/superadmin-dashboard" : "/";
     } catch (err) {
-      console.error('[NEW LOGIN] Error:', err);
       setError("Unable to connect to server.");
     } finally {
       setLoading(false);

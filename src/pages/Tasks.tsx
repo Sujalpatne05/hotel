@@ -63,7 +63,7 @@ export default function Tasks() {
       try {
         await loadTasks();
       } catch (error) {
-        console.error(error);
+        // Task load error
       } finally {
         setLoading(false);
       }

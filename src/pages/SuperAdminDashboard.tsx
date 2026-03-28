@@ -45,7 +45,7 @@ export default function SuperAdminDashboard() {
       setUsers(Array.isArray(uData) ? uData : []);
       setSubscriptions(Array.isArray(sData) ? sData : []);
       setLastRefresh(new Date());
-    } catch (e) { console.error(e); }
+    } catch (e) { /* Dashboard load error */ }
     finally { setLoading(false); }
   };
 

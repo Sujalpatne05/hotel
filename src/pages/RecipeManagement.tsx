@@ -35,7 +35,7 @@ export default function RecipeManagement() {
       try {
         await loadRecipes();
       } catch (error) {
-        console.error(error);
+        // Recipe load error
       } finally {
         setLoading(false);
       }

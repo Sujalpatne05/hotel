@@ -36,7 +36,6 @@ export default function TableQROrdering() {
         const data = await apiRequest<MenuItem[]>("/menu");
         setMenu(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error(error);
         toast.error("Unable to load menu");
       } finally {
         setLoading(false);
@@ -108,7 +107,6 @@ export default function TableQROrdering() {
         navigate(`/table-payment/${tableId}/${data.id}`);
       }, 1000);
     } catch (error) {
-      console.error(error);
       toast.error("Unable to place order");
     } finally {
       setSubmitting(false);

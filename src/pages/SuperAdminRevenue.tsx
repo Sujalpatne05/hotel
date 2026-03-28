@@ -36,7 +36,7 @@ export default function SuperAdminRevenue() {
         const res = await fetch(`${API_BASE_URL}/orders`, { headers });
         const data = await res.json();
         setOrders(Array.isArray(data) ? data : []);
-      } catch (e) { console.error(e); }
+      } catch (e) { /* Revenue load error */ }
       finally { setLoading(false); }
     };
     load();
