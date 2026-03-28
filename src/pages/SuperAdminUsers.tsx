@@ -105,23 +105,40 @@ export default function SuperAdminUsers() {
     if (!headers) return;
 
     // Validate all required fields
-    if (!addForm.name.trim()) {
+    if (!addForm.name || !addForm.name.trim()) {
       setError("Please enter full name");
       return;
     }
-
-    if (!addForm.email.trim()) {
-      setError("Please enter email address");
+    if (addForm.name.trim().length < 2) {
+      setError("Name must be at least 2 characters");
       return;
     }
 
-    if (!addForm.temporaryPassword.trim()) {
+    if (!addForm.email || !addForm.email.trim()) {
+      setError("Please enter email address");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addForm.email.trim())) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    if (!addForm.temporaryPassword || !addForm.temporaryPassword.trim()) {
       setError("Please enter temporary password");
+      return;
+    }
+    if (addForm.temporaryPassword.trim().length < 6) {
+      setError("Password must be at least 6 characters");
       return;
     }
 
     if (!addForm.restaurantId) {
       setError("Please select a restaurant");
+      return;
+    }
+
+    if (!addForm.role) {
+      setError("Please select a role");
       return;
     }
 
@@ -133,22 +150,32 @@ export default function SuperAdminUsers() {
       const selectedRestaurant = restaurants.find(r => r.id === Number(addForm.restaurantId));
       const restaurantName = selectedRestaurant?.name || "";
       
+      const payload = {
+        name: addForm.name.trim(),
+        email: addForm.email.trim().toLowerCase(),
+        role: addForm.role.toLowerCase(),
+        restaurantId: Number(addForm.restaurantId),
+        restaurantName: restaurantName,
+        temporaryPassword: addForm.temporaryPassword.trim(),
+      };
+
+      console.log("Sending payload:", payload);
+      
       const response = await fetch(`${API_BASE_URL}/superadmin/users`, {
         method: "POST",
-        headers,
-        body: JSON.stringify({
-          name: addForm.name.trim(),
-          email: addForm.email.trim(),
-          role: addForm.role,
-          restaurantId: Number(addForm.restaurantId),
-          restaurantName: restaurantName,
-          temporaryPassword: addForm.temporaryPassword,
-        }),
+        headers: {
+          ...headers,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
       });
+      
       const data = await response.json();
+      console.log("Response status:", response.status);
+      console.log("Response data:", data);
 
       if (!response.ok) {
-        setError(data?.error || "Unable to create user.");
+        setError(data?.error || `Unable to create user (${response.status})`);
         return;
       }
 
@@ -157,8 +184,9 @@ export default function SuperAdminUsers() {
       setAddForm({ name: "", email: "", role: "manager", restaurantId: "", temporaryPassword: "" });
       setShowAddModal(false);
       await fetchAdmins();
-    } catch {
-      setError("Unable to connect to backend.");
+    } catch (err) {
+      console.error("Error creating user:", err);
+      setError(`Unable to connect to backend: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
   };
 

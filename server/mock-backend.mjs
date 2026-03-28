@@ -1042,8 +1042,18 @@ const server = createServer(async (req, res) => {
 
     if (req.method === "POST" && path === "/superadmin/users") {
       const body = await parseBody(req);
-      if (!body.email || !body.name || !body.role) {
-        send(res, 400, { error: "Invalid user payload" });
+      
+      // Better validation with specific error messages
+      if (!body.email || String(body.email).trim().length === 0) {
+        send(res, 400, { error: "Email is required" });
+        return;
+      }
+      if (!body.name || String(body.name).trim().length === 0) {
+        send(res, 400, { error: "Name is required" });
+        return;
+      }
+      if (!body.role || String(body.role).trim().length === 0) {
+        send(res, 400, { error: "Role is required" });
         return;
       }
 
@@ -1053,6 +1063,12 @@ const server = createServer(async (req, res) => {
       const role = String(body.role).toLowerCase();
       const restaurantId = body.restaurantId ? Number(body.restaurantId) : null;
       const restaurantName = String(body.restaurantName || "").trim();
+
+      // Validate email format
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        send(res, 400, { error: "Invalid email format" });
+        return;
+      }
 
       // Check if user already exists
       if (users.find(u => u.email.toLowerCase() === email)) {
