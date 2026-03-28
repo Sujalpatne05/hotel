@@ -604,7 +604,7 @@ export default function SuperAdminRestaurants() {
 
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3">
-          <div className="relative w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-xl sm:p-6">
+          <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-5 shadow-xl sm:p-6">
             <button className="absolute right-3 top-2 text-2xl text-slate-400 hover:text-slate-600" onClick={closeModal}>
               &times;
             </button>
