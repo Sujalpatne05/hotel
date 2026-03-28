@@ -128,6 +128,11 @@ export default function SuperAdminUsers() {
     try {
       setError("");
       setMessage("");
+      
+      // Get restaurant name from selected ID
+      const selectedRestaurant = restaurants.find(r => r.id === Number(addForm.restaurantId));
+      const restaurantName = selectedRestaurant?.name || "";
+      
       const response = await fetch(`${API_BASE_URL}/superadmin/users`, {
         method: "POST",
         headers,
@@ -136,6 +141,7 @@ export default function SuperAdminUsers() {
           email: addForm.email.trim(),
           role: addForm.role,
           restaurantId: Number(addForm.restaurantId),
+          restaurantName: restaurantName,
           temporaryPassword: addForm.temporaryPassword,
         }),
       });
