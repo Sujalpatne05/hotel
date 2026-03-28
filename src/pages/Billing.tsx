@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import React, { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/api";
-import { getAuthToken, getStoredRole } from "@/lib/session";
+import { getAuthToken, getStoredRole, getStoredUserId } from "@/lib/session";
 import { toast } from "@/components/ui/sonner";
 import { useLocation } from "react-router-dom";
 import { Monitor, ShoppingCart, UtensilsCrossed } from "lucide-react";
@@ -50,13 +50,20 @@ const Billing: React.FC = () => {
 		setLoadingMenu(true);
 		apiRequest<MenuItem[]>("/menu", { method: "GET" }, true)
 			.then(data => {
+				if (!Array.isArray(data) || data.length === 0) {
+					toast.error("No menu items available");
+					setMenu([]);
+					return;
+				}
 				setMenu(data);
 				// Generate categories from menu
 				const cats = Array.from(new Set(data.map(item => item.category)));
 				setMenuCategories(["All", ...cats]);
 			})
-			.catch(() => {
-				toast.error("Failed to load menu");
+			.catch((err: any) => {
+				const errorMsg = err?.message || "Failed to load menu. Please refresh the page.";
+				toast.error(errorMsg);
+				setMenu([]);
 			})
 			.finally(() => setLoadingMenu(false));
 	}, []);
@@ -66,6 +73,11 @@ const Billing: React.FC = () => {
 		setLoadingTables(true);
 		apiRequest<any[]>("/tables", { method: "GET" }, true)
 			.then(data => {
+				if (!Array.isArray(data)) {
+					toast.error("Invalid table data received");
+					setTables([]);
+					return;
+				}
 				setTables(data.map(t => ({
 					id: t.id,
 					number: t.number ?? t.table_number, // support both
@@ -74,9 +86,10 @@ const Billing: React.FC = () => {
 					section: t.section || ""
 				})));
 			})
-			.catch(() => {
+			.catch((err: any) => {
 				setTables([]);
-				toast.error("Failed to load tables");
+				const errorMsg = err?.message || "Failed to load tables. Please refresh the page.";
+				toast.error(errorMsg);
 			})
 			.finally(() => setLoadingTables(false));
 	}, []);
@@ -86,12 +99,17 @@ const Billing: React.FC = () => {
 		setLoadingRecentOrders(true);
 		apiRequest<any[]>("/orders", { method: "GET" }, true)
 			.then(data => {
+				if (!Array.isArray(data)) {
+					setRecentOrders([]);
+					return;
+				}
 				// Get last 5 orders
 				const recent = data.slice(0, 5);
 				setRecentOrders(recent);
 			})
-			.catch(() => {
+			.catch((err: any) => {
 				setRecentOrders([]);
+				// Don't show error for recent orders - it's not critical
 			})
 			.finally(() => setLoadingRecentOrders(false));
 	}, []);
@@ -122,7 +140,10 @@ const Billing: React.FC = () => {
 						// No existing order for this table - this is normal
 						setExistingOrder(null);
 						setOrderItems([]);
-						return;
+						return null;
+					}
+					if (!res.ok) {
+						throw new Error(`Failed to load order: ${res.statusText}`);
 					}
 					return res.json();
 				})
@@ -151,9 +172,10 @@ const Billing: React.FC = () => {
 					}).filter(Boolean);
 					setOrderItems(parsedItems);
 				})
-				.catch(() => {
+				.catch((err: any) => {
 					setExistingOrder(null);
 					setOrderItems([]);
+					// Don't show error for existing order check - it's not critical
 				})
 				.finally(() => setLoadingOrder(false));
 		} else {
@@ -184,24 +206,32 @@ const Billing: React.FC = () => {
 	const tax = Math.round(subtotal * 0.05);
 	const total = subtotal + tax;
 	const handlePlaceOrder = async () => {
-		if (!orderItems.length) return;
+		if (!orderItems.length) {
+			toast.error("Please select at least one item before placing order");
+			return;
+		}
 		// Prevent dine-in order without table
 		if (orderType === "dine-in" && !selectedTable) {
-			toast.error("Please select a table for dine-in orders.");
+			toast.error("Please select a table for dine-in orders");
 			return;
 		}
 		// For delivery, require payment method selection
 		if (orderType === "delivery" && !paymentMethod) {
-			toast.error("Please select a payment method for delivery orders.");
+			toast.error("Please select a payment method for delivery orders");
 			return;
 		}
 		// For delivery, require customer details
 		if (orderType === "delivery" && (!customer.name || !customer.phone || !customer.address)) {
-			toast.error("Please fill in all customer details for delivery orders.");
+			toast.error("Please fill in all customer details (name, phone, address) for delivery orders");
 			return;
 		}
-		// Simulate userId from session (in real app, get from session)
-		const userId = 1; // TODO: Replace with actual userId from session if available
+		// For take-away, require customer details
+		if (orderType === "take-away" && (!customer.name || !customer.phone)) {
+			toast.error("Please fill in customer name and phone for take-away orders");
+			return;
+		}
+		// Get userId from session (logged-in user's actual ID)
+		const userId = getStoredUserId() || 1;
 		
 		try {
 			if (existingOrder) {
@@ -234,40 +264,50 @@ const Billing: React.FC = () => {
 				if (orderType === "dine-in" && selectedTable) {
 					const table = tables.find(t => t.number === selectedTable);
 					if (table) {
-						await apiRequest(`/tables/${table.id}`, {
-							method: "PUT",
-							body: JSON.stringify({
-								status: "occupied",
-								current_order: `ORD-${newOrder.id}`,
-							}),
-						});
+						try {
+							await apiRequest(`/tables/${table.id}`, {
+								method: "PUT",
+								body: JSON.stringify({
+									status: "occupied",
+									current_order: `ORD-${newOrder.id}`,
+								}),
+							});
+						} catch (err: any) {
+							// Table update failed, but order was created - show warning
+							toast.error("Order created but table status update failed");
+						}
 					}
 				}
 
 				// Create delivery record if order type is delivery
 				if (orderType === "delivery") {
-					// Set driver based on delivery partner
-					let driverName = "Unassigned";
-					if (deliveryPartner === "swiggy") {
-						driverName = "Swiggy Rider";
-					} else if (deliveryPartner === "zomato") {
-						driverName = "Zomato Rider";
-					}
+					try {
+						// Set driver based on delivery partner
+						let driverName = "Unassigned";
+						if (deliveryPartner === "swiggy") {
+							driverName = "Swiggy Rider";
+						} else if (deliveryPartner === "zomato") {
+							driverName = "Zomato Rider";
+						}
 
-					const deliveryPayload = {
-						order_number: `ORD-${newOrder.id}`,
-						customer_name: customer.name,
-						phone: customer.phone,
-						address: customer.address,
-						partner: deliveryPartner,
-						amount: total,
-						driver: driverName,
-						status: "pending",
-					};
-					await apiRequest("/deliveries", {
-						method: "POST",
-						body: JSON.stringify(deliveryPayload),
-					});
+						const deliveryPayload = {
+							order_number: `ORD-${newOrder.id}`,
+							customer_name: customer.name,
+							phone: customer.phone,
+							address: customer.address,
+							partner: deliveryPartner,
+							amount: total,
+							driver: driverName,
+							status: "pending",
+						};
+						await apiRequest("/deliveries", {
+							method: "POST",
+							body: JSON.stringify(deliveryPayload),
+						});
+					} catch (err: any) {
+						// Delivery record creation failed, but order was created
+						toast.error("Order created but delivery record failed. Please create manually.");
+					}
 				}
 				
 				toast.success("Order placed successfully!");
@@ -277,7 +317,8 @@ const Billing: React.FC = () => {
 			setSelectedTable(null);
 			setExistingOrder(null);
 		} catch (err: any) {
-			toast.error(err.message || "Failed to place order");
+			const errorMsg = err?.message || "Failed to place order. Please try again.";
+			toast.error(errorMsg);
 		}
 	};
 

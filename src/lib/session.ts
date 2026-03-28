@@ -29,12 +29,14 @@ export const saveAuthSession = (
   restaurantName = "",
   restaurantId: number | null = null,
   mustChangePassword = false,
+  userId: number | null = null,
 ) => {
   safeSet(localStorage, "authToken", token);
   safeSet(localStorage, "userRole", role);
   safeSet(localStorage, "userName", userName);
   safeSet(localStorage, "restaurantName", restaurantName);
   safeSet(localStorage, "restaurantId", restaurantId === null ? "" : String(restaurantId));
+  safeSet(localStorage, "userId", userId === null ? "" : String(userId));
   safeSet(localStorage, "isAdmin", String(role === "admin"));
   safeSet(localStorage, "isSuperAdmin", String(role === "superadmin"));
   safeSet(localStorage, "mustChangePassword", String(mustChangePassword));
@@ -45,6 +47,7 @@ export const saveAuthSession = (
   safeSet(sessionStorage, "userName", userName);
   safeSet(sessionStorage, "restaurantName", restaurantName);
   safeSet(sessionStorage, "restaurantId", restaurantId === null ? "" : String(restaurantId));
+  safeSet(sessionStorage, "userId", userId === null ? "" : String(userId));
   safeSet(sessionStorage, "isAdmin", String(role === "admin"));
   safeSet(sessionStorage, "isSuperAdmin", String(role === "superadmin"));
   safeSet(sessionStorage, "mustChangePassword", String(mustChangePassword));
@@ -60,6 +63,7 @@ export const clearAuthSession = () => {
   safeRemove(localStorage, "userName");
   safeRemove(localStorage, "restaurantName");
   safeRemove(localStorage, "restaurantId");
+  safeRemove(localStorage, "userId");
   safeRemove(localStorage, "isAdmin");
   safeRemove(localStorage, "isSuperAdmin");
   safeRemove(localStorage, "mustChangePassword");
@@ -69,6 +73,7 @@ export const clearAuthSession = () => {
   safeRemove(sessionStorage, "userName");
   safeRemove(sessionStorage, "restaurantName");
   safeRemove(sessionStorage, "restaurantId");
+  safeRemove(sessionStorage, "userId");
   safeRemove(sessionStorage, "isAdmin");
   safeRemove(sessionStorage, "isSuperAdmin");
   safeRemove(sessionStorage, "mustChangePassword");
@@ -82,6 +87,12 @@ export const getStoredRestaurantName = () => {
 
 export const getStoredRestaurantId = () => {
   const value = safeGet(localStorage, "restaurantId") || safeGet(sessionStorage, "restaurantId") || "";
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
+export const getStoredUserId = () => {
+  const value = safeGet(localStorage, "userId") || safeGet(sessionStorage, "userId") || "";
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };

@@ -80,6 +80,12 @@ const deliveries = [
   },
 ];
 
+// API Keys for delivery partners
+const deliveryApiKeys = {
+  swiggy: "",
+  zomato: "",
+};
+
 const tables = [
   { id: 5001, table_number: 1, capacity: 2, section: "Main Hall", status: "available", current_order: null, reserved_by: null, estimated_time: null },
   { id: 5002, table_number: 2, capacity: 4, section: "Main Hall", status: "occupied", current_order: "ORD-001", reserved_by: null, estimated_time: "30 min" },
@@ -650,6 +656,51 @@ const server = createServer(async (req, res) => {
       }
       delivery.status = String(body.status || delivery.status);
       send(res, 200, delivery);
+      return;
+    }
+
+    if (req.method === "PUT" && path.startsWith("/deliveries/")) {
+      const id = Number(path.split("/")[2]);
+      const body = await parseBody(req);
+      const delivery = deliveries.find((item) => item.id === id);
+      if (!delivery) {
+        notFound(res);
+        return;
+      }
+      if (body.order_number) delivery.order_number = String(body.order_number).trim().toUpperCase();
+      if (body.customer_name) delivery.customer_name = String(body.customer_name).trim();
+      if (body.phone) delivery.phone = String(body.phone);
+      if (body.address) delivery.address = String(body.address).trim();
+      if (body.partner) delivery.partner = String(body.partner);
+      if (body.amount !== undefined) delivery.amount = Number(body.amount);
+      if (body.driver) delivery.driver = String(body.driver);
+      if (body.status) delivery.status = String(body.status);
+      send(res, 200, delivery);
+      return;
+    }
+
+    if (req.method === "DELETE" && path.startsWith("/deliveries/")) {
+      const id = Number(path.split("/")[2]);
+      const idx = deliveries.findIndex((item) => item.id === id);
+      if (idx < 0) {
+        notFound(res);
+        return;
+      }
+      deliveries.splice(idx, 1);
+      send(res, 200, { success: true });
+      return;
+    }
+
+    if (req.method === "GET" && path === "/delivery-api-keys") {
+      send(res, 200, deliveryApiKeys);
+      return;
+    }
+
+    if (req.method === "PUT" && path === "/delivery-api-keys") {
+      const body = await parseBody(req);
+      if (body.swiggy !== undefined) deliveryApiKeys.swiggy = String(body.swiggy).trim();
+      if (body.zomato !== undefined) deliveryApiKeys.zomato = String(body.zomato).trim();
+      send(res, 200, deliveryApiKeys);
       return;
     }
 

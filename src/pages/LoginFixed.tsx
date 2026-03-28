@@ -44,7 +44,8 @@ const LoginFixed = () => {
         data.user.name,
         String(data?.user?.restaurantName || ""),
         typeof data?.user?.restaurantId === "number" ? data.user.restaurantId : null,
-        mustChangePassword
+        mustChangePassword,
+        typeof data?.user?.id === "number" ? data.user.id : null
       );
       
       if (mustChangePassword) {

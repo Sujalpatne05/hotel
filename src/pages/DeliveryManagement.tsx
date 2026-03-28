@@ -82,6 +82,10 @@ export default function DeliveryManagement() {
 
   const handleSaveApiKeys = async () => {
     try {
+      if (!apiKeys.swiggy && !apiKeys.zomato) {
+        toast.error("Please enter at least one API key");
+        return;
+      }
       setApiKeySaving(true);
       const headers = buildAuthHeaders();
       if (!headers) {
@@ -97,13 +101,13 @@ export default function DeliveryManagement() {
         goToLogin();
         return;
       }
-      if (res.ok) {
-        toast.success("API keys updated successfully");
-      } else {
-        toast.error("Failed to update API keys");
+      if (!res.ok) {
+        throw new Error("Failed to update API keys");
       }
-    } catch (err) {
-      toast.error("Error updating API keys");
+      toast.success("API keys updated successfully");
+    } catch (err: any) {
+      const errorMsg = err?.message || "Error updating API keys";
+      toast.error(errorMsg);
     } finally {
       setApiKeySaving(false);
     }
@@ -112,7 +116,15 @@ export default function DeliveryManagement() {
   const handleSaveDelivery = async () => {
     try {
       if (!newDelivery.order_number || !newDelivery.customer_name || !newDelivery.address) {
-        toast.error("Please fill in all required fields");
+        toast.error("Please fill in all required fields (Order #, Customer Name, Address)");
+        return;
+      }
+      if (!newDelivery.phone) {
+        toast.error("Please enter customer phone number");
+        return;
+      }
+      if (!newDelivery.driver) {
+        toast.error("Please assign a driver");
         return;
       }
 
@@ -149,33 +161,35 @@ export default function DeliveryManagement() {
         return;
       }
 
-      if (res.ok) {
-        const savedDelivery = await res.json();
-        if (isEdit) {
-          setDeliveries(deliveries.map(d => d.id === savedDelivery.id ? savedDelivery : d));
-          toast.success("Delivery updated successfully");
-        } else {
-          setDeliveries([savedDelivery, ...deliveries]);
-          toast.success("Delivery created successfully");
-        }
-        setEditingId(null);
-        setNewDelivery({
-          id: 0,
-          order_number: "",
-          customer_name: "",
-          phone: "",
-          address: "",
-          partner: "in-house",
-          amount: "",
-          driver: "",
-          status: "pending",
-          createdAt: new Date().toISOString(),
-        });
-      } else {
-        toast.error("Failed to save delivery");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to save delivery");
       }
-    } catch (err) {
-      toast.error("Error saving delivery");
+
+      const savedDelivery = await res.json();
+      if (isEdit) {
+        setDeliveries(deliveries.map(d => d.id === savedDelivery.id ? savedDelivery : d));
+        toast.success("Delivery updated successfully");
+      } else {
+        setDeliveries([savedDelivery, ...deliveries]);
+        toast.success("Delivery created successfully");
+      }
+      setEditingId(null);
+      setNewDelivery({
+        id: 0,
+        order_number: "",
+        customer_name: "",
+        phone: "",
+        address: "",
+        partner: "in-house",
+        amount: "",
+        driver: "",
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      });
+    } catch (err: any) {
+      const errorMsg = err?.message || "Error saving delivery";
+      toast.error(errorMsg);
     } finally {
       setSaving(false);
     }
@@ -201,14 +215,15 @@ export default function DeliveryManagement() {
         return;
       }
 
-      if (res.ok) {
-        setDeliveries(deliveries.filter(d => d.id !== id));
-        toast.success("Delivery deleted successfully");
-      } else {
-        toast.error("Failed to delete delivery");
+      if (!res.ok) {
+        throw new Error("Failed to delete delivery");
       }
-    } catch (err) {
-      toast.error("Error deleting delivery");
+
+      setDeliveries(deliveries.filter(d => d.id !== id));
+      toast.success("Delivery deleted successfully");
+    } catch (err: any) {
+      const errorMsg = err?.message || "Error deleting delivery";
+      toast.error(errorMsg);
     }
   };
 
@@ -219,12 +234,13 @@ export default function DeliveryManagement() {
         const headers = buildAuthHeaders();
         if (!headers) return;
         const res = await fetch(`${API_BASE_URL}/delivery-api-keys`, { headers });
-        if (res.ok) {
-          const data = await res.json();
-          setApiKeys(data);
+        if (!res.ok) {
+          throw new Error("Failed to load API keys");
         }
-      } catch (err) {
-        // Handle error silently
+        const data = await res.json();
+        setApiKeys(data);
+      } catch (err: any) {
+        // API keys are optional, don't show error
       } finally {
         setApiKeySaving(false);
       }
@@ -246,12 +262,15 @@ export default function DeliveryManagement() {
           goToLogin("Session expired. Please login again.");
           return;
         }
-        if (res.ok) {
-          const data = await res.json();
-          setDeliveries(Array.isArray(data) ? data : []);
+        if (!res.ok) {
+          throw new Error("Failed to load deliveries");
         }
-      } catch (err) {
-        setError("Failed to load deliveries");
+        const data = await res.json();
+        setDeliveries(Array.isArray(data) ? data : []);
+      } catch (err: any) {
+        const errorMsg = err?.message || "Failed to load deliveries";
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     };
     fetchDeliveries();
