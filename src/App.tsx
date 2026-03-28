@@ -21,7 +21,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import AdminLogin from "./pages/AdminLogin";
+import AdminLogin from "./pages/LoginFixed";
 import SuperAdminLogin from "./pages/SuperAdminLogin";
 import Index from "./pages/Index";
 import Billing from "./pages/Billing";
