@@ -191,7 +191,7 @@ export default function SuperAdminRestaurants() {
 
   async function createAdminAccount(
     headers: Record<string, string>,
-    payload: { name: string; email: string; restaurantName: string; temporaryPassword: string }
+    payload: { name: string; email: string; restaurantName: string; restaurantId: number; temporaryPassword: string }
   ) {
     const response = await fetch(`${API_BASE_URL}/superadmin/users`, {
       method: "POST",
@@ -200,6 +200,7 @@ export default function SuperAdminRestaurants() {
         name: payload.name.trim(),
         email: payload.email.trim(),
         role: "admin",
+        restaurantId: payload.restaurantId,
         restaurantName: payload.restaurantName.trim(),
         temporaryPassword: payload.temporaryPassword,
       }),
@@ -281,6 +282,7 @@ export default function SuperAdminRestaurants() {
           await createAdminAccount(headers, {
             ...adminOneForm,
             restaurantName: form.name,
+            restaurantId: createData.id,
           });
           createdAdmins += 1;
         } catch (adminCreateError) {
@@ -292,6 +294,7 @@ export default function SuperAdminRestaurants() {
             await createAdminAccount(headers, {
               ...adminTwoForm,
               restaurantName: form.name,
+              restaurantId: createData.id,
             });
             createdAdmins += 1;
           } catch (adminCreateError) {

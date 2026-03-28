@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { FaMotorcycle, FaUser, FaRupeeSign, FaCheckCircle, FaClock, FaShippingFast } from "react-icons/fa";
+import { FaMotorcycle, FaUser, FaRupeeSign, FaCheckCircle, FaClock, FaShippingFast, FaTrash, FaEdit } from "react-icons/fa";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,17 +12,25 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { buildAuthHeaders, clearAuthSession, isAuthError } from "@/lib/session";
 
+const API_BASE_URL = (() => {
+  const configured = (import.meta.env.VITE_API_URL || "").trim();
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
+    return "/api";
+  }
+  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+})();
+
 type Delivery = {
   id: number;
-  orderNumber: string;
-  customerName: string;
+  order_number: string;
+  customer_name: string;
   phone: string;
   address: string;
   partner: "in-house" | "swiggy" | "zomato";
   amount: number;
   driver: string;
   status: "pending" | "dispatched" | "delivered";
-  createdAt: string;
+  createdAt?: string;
 };
 
 type ApiKeys = {
@@ -44,8 +52,8 @@ export default function DeliveryManagement() {
   const [saving, setSaving] = useState(false);
   const [newDelivery, setNewDelivery] = useState({
     id: 0,
-    orderNumber: "",
-    customerName: "",
+    order_number: "",
+    customer_name: "",
     phone: "",
     address: "",
     partner: "in-house" as Delivery["partner"],
@@ -72,19 +80,151 @@ export default function DeliveryManagement() {
     setTimeout(() => navigate("/admin-login"), 300);
   };
 
+  const handleSaveApiKeys = async () => {
+    try {
+      setApiKeySaving(true);
+      const headers = buildAuthHeaders();
+      if (!headers) {
+        goToLogin();
+        return;
+      }
+      const res = await fetch(`${API_BASE_URL}/delivery-api-keys`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(apiKeys),
+      });
+      if (isAuthError(res.status)) {
+        goToLogin();
+        return;
+      }
+      if (res.ok) {
+        toast.success("API keys updated successfully");
+      } else {
+        toast.error("Failed to update API keys");
+      }
+    } catch (err) {
+      toast.error("Error updating API keys");
+    } finally {
+      setApiKeySaving(false);
+    }
+  };
+
+  const handleSaveDelivery = async () => {
+    try {
+      if (!newDelivery.order_number || !newDelivery.customer_name || !newDelivery.address) {
+        toast.error("Please fill in all required fields");
+        return;
+      }
+
+      setSaving(true);
+      const headers = buildAuthHeaders();
+      if (!headers) {
+        goToLogin();
+        return;
+      }
+
+      const payload = {
+        order_number: newDelivery.order_number,
+        customer_name: newDelivery.customer_name,
+        phone: newDelivery.phone,
+        address: newDelivery.address,
+        partner: newDelivery.partner,
+        amount: Number(newDelivery.amount) || 0,
+        driver: newDelivery.driver,
+        status: newDelivery.status,
+      };
+
+      const isEdit = editingId && editingId !== 0;
+      const url = isEdit ? `${API_BASE_URL}/deliveries/${editingId}` : `${API_BASE_URL}/deliveries`;
+      const method = isEdit ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (isAuthError(res.status)) {
+        goToLogin();
+        return;
+      }
+
+      if (res.ok) {
+        const savedDelivery = await res.json();
+        if (isEdit) {
+          setDeliveries(deliveries.map(d => d.id === savedDelivery.id ? savedDelivery : d));
+          toast.success("Delivery updated successfully");
+        } else {
+          setDeliveries([savedDelivery, ...deliveries]);
+          toast.success("Delivery created successfully");
+        }
+        setEditingId(null);
+        setNewDelivery({
+          id: 0,
+          order_number: "",
+          customer_name: "",
+          phone: "",
+          address: "",
+          partner: "in-house",
+          amount: "",
+          driver: "",
+          status: "pending",
+          createdAt: new Date().toISOString(),
+        });
+      } else {
+        toast.error("Failed to save delivery");
+      }
+    } catch (err) {
+      toast.error("Error saving delivery");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteDelivery = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this delivery?")) return;
+
+    try {
+      const headers = buildAuthHeaders();
+      if (!headers) {
+        goToLogin();
+        return;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/deliveries/${id}`, {
+        method: "DELETE",
+        headers,
+      });
+
+      if (isAuthError(res.status)) {
+        goToLogin();
+        return;
+      }
+
+      if (res.ok) {
+        setDeliveries(deliveries.filter(d => d.id !== id));
+        toast.success("Delivery deleted successfully");
+      } else {
+        toast.error("Failed to delete delivery");
+      }
+    } catch (err) {
+      toast.error("Error deleting delivery");
+    }
+  };
+
   // Load API keys from backend
   useEffect(() => {
     const fetchApiKeys = async () => {
       try {
-        setApiKeySaving(true);
         const headers = buildAuthHeaders();
         if (!headers) return;
         const res = await fetch(`${API_BASE_URL}/delivery-api-keys`, { headers });
-        if (!res.ok) throw new Error("Failed to fetch API keys");
-        const data = await res.json();
-        // (API key fetch logic here if needed)
+        if (res.ok) {
+          const data = await res.json();
+          setApiKeys(data);
+        }
       } catch (err) {
-        // Handle error if needed
+        // Handle error silently
       } finally {
         setApiKeySaving(false);
       }
@@ -92,35 +232,29 @@ export default function DeliveryManagement() {
     fetchApiKeys();
   }, []);
 
-  // Load deliveries from backend (placeholder, replace with real API)
+  // Load deliveries from backend
   useEffect(() => {
-    // TODO: Replace with real API call
-    setDeliveries([
-      {
-        id: 1,
-        orderNumber: "ORD-001",
-        customerName: "John Doe",
-        phone: "1234567890",
-        address: "123 Main St",
-        partner: "swiggy",
-        amount: 299,
-        driver: "Amit",
-        status: "pending",
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 2,
-        orderNumber: "ORD-002",
-        customerName: "Jane Smith",
-        phone: "9876543210",
-        address: "456 Park Ave",
-        partner: "zomato",
-        amount: 499,
-        driver: "Sunil",
-        status: "delivered",
-        createdAt: new Date().toISOString(),
-      },
-    ]);
+    const fetchDeliveries = async () => {
+      try {
+        const headers = buildAuthHeaders();
+        if (!headers) {
+          goToLogin("Please login to continue.");
+          return;
+        }
+        const res = await fetch(`${API_BASE_URL}/deliveries`, { headers });
+        if (isAuthError(res.status)) {
+          goToLogin("Session expired. Please login again.");
+          return;
+        }
+        if (res.ok) {
+          const data = await res.json();
+          setDeliveries(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        setError("Failed to load deliveries");
+      }
+    };
+    fetchDeliveries();
   }, []);
   return (
     <DashboardLayout>
@@ -165,13 +299,23 @@ export default function DeliveryManagement() {
             <form className="space-y-4">
               <div>
                 <Label>Swiggy API Key</Label>
-                <Input value={apiKeys.swiggy} readOnly placeholder="Not set" />
+                <Input 
+                  value={apiKeys.swiggy} 
+                  onChange={e => setApiKeys({...apiKeys, swiggy: e.target.value})}
+                  placeholder="Enter Swiggy API key" 
+                />
               </div>
               <div>
                 <Label>Zomato API Key</Label>
-                <Input value={apiKeys.zomato} readOnly placeholder="Not set" />
+                <Input 
+                  value={apiKeys.zomato} 
+                  onChange={e => setApiKeys({...apiKeys, zomato: e.target.value})}
+                  placeholder="Enter Zomato API key" 
+                />
               </div>
-              <Button type="button" disabled>Update Keys (Coming Soon)</Button>
+              <Button type="button" onClick={handleSaveApiKeys} disabled={apiKeySaving}>
+                {apiKeySaving ? "Saving..." : "Update Keys"}
+              </Button>
             </form>
           </CardContent>
         </Card>
@@ -194,44 +338,63 @@ export default function DeliveryManagement() {
               </Button>
             </div>
             <div className="overflow-x-auto rounded-lg border shadow-sm">
-              <table className="min-w-full text-sm">
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="p-2 border">Order #</th>
-                    <th className="p-2 border">Customer</th>
-                    <th className="p-2 border">Phone</th>
-                    <th className="p-2 border">Partner</th>
-                    <th className="p-2 border">Amount</th>
-                    <th className="p-2 border">Driver</th>
-                    <th className="p-2 border">Status</th>
-                    <th className="p-2 border">Actions</th>
+                    <th className="p-3 border text-left whitespace-nowrap">Order #</th>
+                    <th className="p-3 border text-left whitespace-nowrap">Customer</th>
+                    <th className="p-3 border text-left whitespace-nowrap">Phone</th>
+                    <th className="p-3 border text-left whitespace-nowrap">Partner</th>
+                    <th className="p-3 border text-left whitespace-nowrap">Amount</th>
+                    <th className="p-3 border text-left whitespace-nowrap">Driver</th>
+                    <th className="p-3 border text-left whitespace-nowrap">Status</th>
+                    <th className="p-3 border text-left whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {deliveries.filter(d =>
-                    d.customerName.toLowerCase().includes(search.toLowerCase()) ||
-                    d.orderNumber.toLowerCase().includes(search.toLowerCase())
+                    d.customer_name.toLowerCase().includes(search.toLowerCase()) ||
+                    d.order_number.toLowerCase().includes(search.toLowerCase())
                   ).map(delivery => (
-                    <tr key={delivery.id} className="hover:bg-blue-50 transition">
-                      <td className="p-2 border font-semibold">{delivery.orderNumber}</td>
-                      <td className="p-2 border flex items-center gap-2"><FaUser className="text-gray-400" />{delivery.customerName}</td>
-                      <td className="p-2 border">{delivery.phone}</td>
-                      <td className="p-2 border">
+                    <tr key={delivery.id} className="hover:bg-blue-50 transition border-b">
+                      <td className="p-3 border font-semibold whitespace-nowrap">{delivery.order_number}</td>
+                      <td className="p-3 border flex items-center gap-2"><FaUser className="text-gray-400 flex-shrink-0" /><span className="truncate">{delivery.customer_name}</span></td>
+                      <td className="p-3 border whitespace-nowrap">{delivery.phone}</td>
+                      <td className="p-3 border">
                         <Badge variant={delivery.partner === "swiggy" ? "secondary" : delivery.partner === "zomato" ? "destructive" : "default"}>
                           {delivery.partner.charAt(0).toUpperCase() + delivery.partner.slice(1)}
                         </Badge>
                       </td>
-                      <td className="p-2 border font-semibold text-purple-700 flex items-center gap-1"><FaRupeeSign />{delivery.amount}</td>
-                      <td className="p-2 border">{delivery.driver}</td>
-                      <td className="p-2 border">
+                      <td className="p-3 border font-semibold text-purple-700 flex items-center gap-1 whitespace-nowrap"><FaRupeeSign className="flex-shrink-0" />{delivery.amount}</td>
+                      <td className="p-3 border whitespace-nowrap">{delivery.driver}</td>
+                      <td className="p-3 border">
                         <Badge variant={delivery.status === "delivered" ? "success" : delivery.status === "dispatched" ? "secondary" : "default"}>
                           {delivery.status.charAt(0).toUpperCase() + delivery.status.slice(1)}
                         </Badge>
                       </td>
-                      <td className="p-2 border">
-                        <Button size="sm" variant="outline" onClick={() => setEditingId(delivery.id)}>
-                          Edit
-                        </Button>
+                      <td className="p-3 border">
+                        <div className="flex gap-2 flex-wrap">
+                          <Button size="sm" variant="outline" onClick={() => {
+                            setNewDelivery({
+                              id: delivery.id,
+                              order_number: delivery.order_number,
+                              customer_name: delivery.customer_name,
+                              phone: delivery.phone,
+                              address: delivery.address,
+                              partner: delivery.partner,
+                              amount: String(delivery.amount),
+                              driver: delivery.driver,
+                              status: delivery.status,
+                              createdAt: delivery.createdAt || new Date().toISOString(),
+                            });
+                            setEditingId(delivery.id);
+                          }}>
+                            <FaEdit className="mr-1" /> Edit
+                          </Button>
+                          <Button size="sm" variant="destructive" onClick={() => handleDeleteDelivery(delivery.id)}>
+                            <FaTrash className="mr-1" /> Delete
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -249,11 +412,11 @@ export default function DeliveryManagement() {
               <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 <FaMotorcycle className="text-blue-500" /> {editingId === 0 ? "Add Delivery" : "Edit Delivery"}
               </h2>
-              <form className="flex flex-col gap-4">
-                <Input placeholder="Order Number" value={newDelivery.orderNumber} onChange={e => setNewDelivery(d => ({ ...d, orderNumber: e.target.value }))} />
-                <Input placeholder="Customer Name" value={newDelivery.customerName} onChange={e => setNewDelivery(d => ({ ...d, customerName: e.target.value }))} />
+              <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); handleSaveDelivery(); }}>
+                <Input placeholder="Order Number" value={newDelivery.order_number} onChange={e => setNewDelivery(d => ({ ...d, order_number: e.target.value }))} required />
+                <Input placeholder="Customer Name" value={newDelivery.customer_name} onChange={e => setNewDelivery(d => ({ ...d, customer_name: e.target.value }))} required />
                 <Input placeholder="Phone" value={newDelivery.phone} onChange={e => setNewDelivery(d => ({ ...d, phone: e.target.value }))} />
-                <Input placeholder="Address" value={newDelivery.address} onChange={e => setNewDelivery(d => ({ ...d, address: e.target.value }))} />
+                <Input placeholder="Address" value={newDelivery.address} onChange={e => setNewDelivery(d => ({ ...d, address: e.target.value }))} required />
                 <Select value={newDelivery.partner} onValueChange={val => setNewDelivery(d => ({ ...d, partner: val as Delivery["partner"] }))}>
                   <SelectTrigger><SelectValue placeholder="Partner" /></SelectTrigger>
                   <SelectContent>
@@ -264,9 +427,17 @@ export default function DeliveryManagement() {
                 </Select>
                 <Input placeholder="Amount" type="number" value={newDelivery.amount} onChange={e => setNewDelivery(d => ({ ...d, amount: e.target.value }))} />
                 <Input placeholder="Driver" value={newDelivery.driver} onChange={e => setNewDelivery(d => ({ ...d, driver: e.target.value }))} />
+                <Select value={newDelivery.status} onValueChange={val => setNewDelivery(d => ({ ...d, status: val as Delivery["status"] }))}>
+                  <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="dispatched">Dispatched</SelectItem>
+                    <SelectItem value="delivered">Delivered</SelectItem>
+                  </SelectContent>
+                </Select>
                 <div className="flex gap-3 mt-4">
                   <Button type="button" onClick={() => setEditingId(null)} variant="secondary">Cancel</Button>
-                  <Button type="submit" disabled>Save (Demo Only)</Button>
+                  <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
                 </div>
               </form>
             </div>

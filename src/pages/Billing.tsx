@@ -32,6 +32,7 @@ const Billing: React.FC = () => {
 	const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
 	const [customer, setCustomer] = useState({ name: "", phone: "", address: "" });
 	const [paymentMethod, setPaymentMethod] = useState<typeof PAYMENT_METHODS[number]>("cash");
+	const [deliveryPartner, setDeliveryPartner] = useState<"in-house" | "swiggy" | "zomato">("in-house");
 	const [menuCategory, setMenuCategory] = useState<string>("All");
 	const [menuSearch, setMenuSearch] = useState<string>("");
 	const [menu, setMenu] = useState<MenuItem[]>([]);
@@ -194,6 +195,11 @@ const Billing: React.FC = () => {
 			toast.error("Please select a payment method for delivery orders.");
 			return;
 		}
+		// For delivery, require customer details
+		if (orderType === "delivery" && (!customer.name || !customer.phone || !customer.address)) {
+			toast.error("Please fill in all customer details for delivery orders.");
+			return;
+		}
 		// Simulate userId from session (in real app, get from session)
 		const userId = 1; // TODO: Replace with actual userId from session if available
 		
@@ -236,6 +242,32 @@ const Billing: React.FC = () => {
 							}),
 						});
 					}
+				}
+
+				// Create delivery record if order type is delivery
+				if (orderType === "delivery") {
+					// Set driver based on delivery partner
+					let driverName = "Unassigned";
+					if (deliveryPartner === "swiggy") {
+						driverName = "Swiggy Rider";
+					} else if (deliveryPartner === "zomato") {
+						driverName = "Zomato Rider";
+					}
+
+					const deliveryPayload = {
+						order_number: `ORD-${newOrder.id}`,
+						customer_name: customer.name,
+						phone: customer.phone,
+						address: customer.address,
+						partner: deliveryPartner,
+						amount: total,
+						driver: driverName,
+						status: "pending",
+					};
+					await apiRequest("/deliveries", {
+						method: "POST",
+						body: JSON.stringify(deliveryPayload),
+					});
 				}
 				
 				toast.success("Order placed successfully!");
@@ -407,6 +439,34 @@ const Billing: React.FC = () => {
 													{method.toUpperCase()}
 												</Button>
 											))}
+										</div>
+									</div>
+								)}
+								{orderType === "delivery" && (
+									<div className="mb-4">
+										<div className="font-medium mb-1">Delivery Partner</div>
+										<div className="flex gap-2">
+											<Button
+												size="sm"
+												variant={deliveryPartner === "in-house" ? "default" : "outline"}
+												onClick={() => setDeliveryPartner("in-house")}
+											>
+												In-House
+											</Button>
+											<Button
+												size="sm"
+												variant={deliveryPartner === "swiggy" ? "default" : "outline"}
+												onClick={() => setDeliveryPartner("swiggy")}
+											>
+												Swiggy
+											</Button>
+											<Button
+												size="sm"
+												variant={deliveryPartner === "zomato" ? "default" : "outline"}
+												onClick={() => setDeliveryPartner("zomato")}
+											>
+												Zomato
+											</Button>
 										</div>
 									</div>
 								)}
