@@ -54,16 +54,7 @@
     "is_active": true,
     "must_change_password": false
   },
-  {
-    "id": 11,
-    "name": "Patne Sujal Jitendra",
-    "email": "sujalpatne583@gmail.com",
-    "password": "sujal111",
-    "role": "admin",
-    "restaurant_id": 2,
-    "restaurant_name": "Dosti cafe",
-    "is_active": true
-  },
+
   {
     "id": 12,
     "name": "shoheb",
