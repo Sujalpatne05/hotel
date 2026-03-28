@@ -25,13 +25,14 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      // manifest: require("./public/manifest.webmanifest"), // Removed: Vite serves manifest.webmanifest from public automatically
+      injectRegister: false, // Disable auto-registration to prevent errors
       devOptions: {
         enabled: false
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,png,svg,ico,json,webmanifest}"]
-      }
+      },
+      manifest: false // Disable manifest generation for now
     })
   ].filter(Boolean),
   resolve: {
