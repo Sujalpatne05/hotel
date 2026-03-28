@@ -73,7 +73,7 @@ const LoginFixed = () => {
               <ChefHat style={{ width: 40, height: 40, color: "white" }} />
             </div>
             <h1 style={{ fontSize: 28, fontWeight: 900, color: "#1a1a2e", margin: "0 0 5px" }}>RestroHub</h1>
-            <p style={{ color: "#999", fontSize: 13, margin: 0 }}>Fixed Login - All Roles</p>
+            <p style={{ color: "#999", fontSize: 13, margin: 0 }}>Restaurant Management System</p>
           </div>
 
           {error && (
@@ -130,7 +130,7 @@ const LoginFixed = () => {
           </form>
 
           <div style={{ marginTop: 20, textAlign: "center", fontSize: 12, color: "#999" }}>
-            ✓ Works for all roles: Staff, Manager, Admin, Super Admin
+            Complete POS & Restaurant Management Solution
           </div>
         </div>
       </div>
