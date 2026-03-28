@@ -109,7 +109,34 @@ export default function Payroll() {
   };
 
   const handleUpdateStaff = async () => {
-    if (!newName || !newRole || !newSalary || editingId === null) return;
+    // Validation
+    if (!newName || !newName.trim()) {
+      alert("Staff name is required");
+      return;
+    }
+    if (newName.trim().length < 2) {
+      alert("Staff name must be at least 2 characters");
+      return;
+    }
+    if (!newRole || !newRole.trim()) {
+      alert("Staff role is required");
+      return;
+    }
+    if (!newSalary) {
+      alert("Salary is required");
+      return;
+    }
+    const salary = Number(newSalary);
+    if (isNaN(salary) || salary <= 0) {
+      alert("Salary must be greater than 0");
+      return;
+    }
+    if (salary > 1000000) {
+      alert("Salary seems unrealistic (max: 1,000,000)");
+      return;
+    }
+    if (editingId === null) return;
+    
     const headers = buildAuthHeaders();
     if (!headers) return;
 
@@ -163,7 +190,13 @@ export default function Payroll() {
   };
 
   const handleUpdateAttendance = async () => {
+    // Validation
+    if (attendanceLeaves < 0 || attendanceLeaves > 30) {
+      alert("Leaves must be between 0 and 30");
+      return;
+    }
     if (editingAttendanceId === null) return;
+    
     const headers = buildAuthHeaders();
     if (!headers) return;
 

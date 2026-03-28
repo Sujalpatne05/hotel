@@ -155,6 +155,31 @@ const MenuManagement = () => {
       return;
     }
     
+    // Validate name
+    if (!newItem.name.trim()) {
+      setError("Item name is required");
+      return;
+    }
+    if (newItem.name.trim().length < 2 || newItem.name.trim().length > 100) {
+      setError("Item name must be 2-100 characters");
+      return;
+    }
+    
+    // Validate price
+    const price = Number(newItem.price);
+    if (!newItem.price || isNaN(price)) {
+      setError("Price is required and must be a number");
+      return;
+    }
+    if (price <= 0) {
+      setError("Price must be greater than 0");
+      return;
+    }
+    if (price > 10000) {
+      setError("Price seems unrealistic (max: 10,000)");
+      return;
+    }
+    
     let imageUrl = newItem.image_url || "";
     if (imageFile) {
       imageUrl = await uploadImage(imageFile);

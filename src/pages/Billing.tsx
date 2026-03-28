@@ -221,14 +221,30 @@ const Billing: React.FC = () => {
 			return;
 		}
 		// For delivery, require customer details
-		if (orderType === "delivery" && (!customer.name || !customer.phone || !customer.address)) {
-			toast.error("Please fill in all customer details (name, phone, address) for delivery orders");
-			return;
+		if (orderType === "delivery") {
+			if (!customer.name || customer.name.trim().length < 2) {
+				toast.error("Customer name must be at least 2 characters");
+				return;
+			}
+			if (!customer.phone || !/^\d{10}$/.test(customer.phone.replace(/\D/g, ""))) {
+				toast.error("Phone must be 10 digits");
+				return;
+			}
+			if (!customer.address || customer.address.trim().length < 5) {
+				toast.error("Address must be at least 5 characters");
+				return;
+			}
 		}
 		// For take-away, require customer details
-		if (orderType === "take-away" && (!customer.name || !customer.phone)) {
-			toast.error("Please fill in customer name and phone for take-away orders");
-			return;
+		if (orderType === "take-away") {
+			if (!customer.name || customer.name.trim().length < 2) {
+				toast.error("Customer name must be at least 2 characters");
+				return;
+			}
+			if (!customer.phone || !/^\d{10}$/.test(customer.phone.replace(/\D/g, ""))) {
+				toast.error("Phone must be 10 digits");
+				return;
+			}
 		}
 		// Get userId from session (logged-in user's actual ID)
 		const userId = getStoredUserId() || 1;

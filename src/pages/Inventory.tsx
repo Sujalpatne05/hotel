@@ -106,6 +106,41 @@ const Inventory = () => {
 
   const handleFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Validation
+    if (!newItem.name.trim()) {
+      alert("Item name is required");
+      return;
+    }
+    if (newItem.name.trim().length < 2 || newItem.name.trim().length > 100) {
+      alert("Item name must be 2-100 characters");
+      return;
+    }
+    if (newItem.stock < 0) {
+      alert("Stock cannot be negative");
+      return;
+    }
+    if (newItem.minStock < 0) {
+      alert("Minimum stock cannot be negative");
+      return;
+    }
+    if (newItem.maxStock < 0) {
+      alert("Maximum stock cannot be negative");
+      return;
+    }
+    if (newItem.minStock >= newItem.maxStock) {
+      alert("Minimum stock must be less than maximum stock");
+      return;
+    }
+    if (newItem.stock > newItem.maxStock) {
+      alert("Current stock cannot exceed maximum stock");
+      return;
+    }
+    if (newItem.stock < newItem.minStock) {
+      alert("Current stock should be at least minimum stock");
+      return;
+    }
+    
     const headers = buildAuthHeaders();
     if (!headers) return;
 
@@ -145,6 +180,17 @@ const Inventory = () => {
   const handleRestockSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!restockModal.itemId) return;
+    
+    // Validation
+    if (restockQty < 0) {
+      alert("Stock cannot be negative");
+      return;
+    }
+    if (restockQty > 999999) {
+      alert("Stock quantity seems unrealistic (max: 999,999)");
+      return;
+    }
+    
     const headers = buildAuthHeaders();
     if (!headers) return;
 

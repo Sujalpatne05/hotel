@@ -115,16 +115,38 @@ export default function DeliveryManagement() {
 
   const handleSaveDelivery = async () => {
     try {
-      if (!newDelivery.order_number || !newDelivery.customer_name || !newDelivery.address) {
-        toast.error("Please fill in all required fields (Order #, Customer Name, Address)");
+      // Validation
+      if (!newDelivery.order_number || !newDelivery.order_number.trim()) {
+        toast.error("Order number is required");
         return;
       }
-      if (!newDelivery.phone) {
-        toast.error("Please enter customer phone number");
+      if (!newDelivery.customer_name || !newDelivery.customer_name.trim()) {
+        toast.error("Customer name is required");
         return;
       }
-      if (!newDelivery.driver) {
-        toast.error("Please assign a driver");
+      if (!newDelivery.address || !newDelivery.address.trim()) {
+        toast.error("Address is required");
+        return;
+      }
+      if (!newDelivery.phone || !newDelivery.phone.trim()) {
+        toast.error("Phone number is required");
+        return;
+      }
+      if (!/^\d{10}$/.test(newDelivery.phone.replace(/\D/g, ""))) {
+        toast.error("Phone must be 10 digits");
+        return;
+      }
+      if (!newDelivery.driver || !newDelivery.driver.trim()) {
+        toast.error("Driver assignment is required");
+        return;
+      }
+      const amount = Number(newDelivery.amount);
+      if (isNaN(amount) || amount <= 0) {
+        toast.error("Delivery amount must be greater than 0");
+        return;
+      }
+      if (amount > 10000) {
+        toast.error("Delivery amount seems unrealistic (max: 10,000)");
         return;
       }
 

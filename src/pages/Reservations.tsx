@@ -116,8 +116,46 @@ export default function Reservations() {
   }, []);
 
   const addReservation = async () => {
-    if (!form.name.trim() || !form.phone.trim() || !form.date || !form.time || !form.tableNumber.trim()) {
-      toast.error("Please fill all required fields");
+    // Validation
+    if (!form.name.trim()) {
+      toast.error("Customer name is required");
+      return;
+    }
+    if (form.name.trim().length < 2) {
+      toast.error("Customer name must be at least 2 characters");
+      return;
+    }
+    if (!form.phone.trim()) {
+      toast.error("Phone number is required");
+      return;
+    }
+    if (!/^\d{10}$/.test(form.phone.replace(/\D/g, ""))) {
+      toast.error("Phone must be 10 digits");
+      return;
+    }
+    if (!form.date) {
+      toast.error("Reservation date is required");
+      return;
+    }
+    // Check if date is in future
+    const selectedDate = new Date(form.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (selectedDate < today) {
+      toast.error("Reservation date must be in the future");
+      return;
+    }
+    if (!form.time) {
+      toast.error("Reservation time is required");
+      return;
+    }
+    if (!form.tableNumber.trim()) {
+      toast.error("Table number is required");
+      return;
+    }
+    const guests = Number(form.guests);
+    if (guests < 1 || guests > 20) {
+      toast.error("Guest count must be between 1 and 20");
       return;
     }
 

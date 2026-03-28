@@ -91,6 +91,37 @@ const CRM = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    
+    // Validation
+    if (!form.name.trim()) {
+      alert("Customer name is required");
+      return;
+    }
+    if (form.name.trim().length < 2) {
+      alert("Customer name must be at least 2 characters");
+      return;
+    }
+    if (!form.email.trim()) {
+      alert("Email is required");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      alert("Please enter a valid email address");
+      return;
+    }
+    if (form.phone && !/^\d{10}$/.test(form.phone.replace(/\D/g, ""))) {
+      alert("Phone must be 10 digits");
+      return;
+    }
+    if (form.visits < 0 || form.visits > 1000) {
+      alert("Visits must be between 0 and 1000");
+      return;
+    }
+    if (form.totalSpent < 0 || form.totalSpent > 1000000) {
+      alert("Total spent must be between 0 and 1,000,000");
+      return;
+    }
+    
     try {
       if (editCustomer) {
         await apiRequest(`/crm/customers/${editCustomer.id}`, {
