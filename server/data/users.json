@@ -33,18 +33,7 @@
     "must_change_password": false
   },
   {
-    "id": 4,
-    "name": "Staff User",
-    "email": "staff@example.com",
-    "password": "staff123",
-    "role": "staff",
-    "restaurant_id": 1,
-    "restaurant_name": "Demo Restaurant",
-    "is_active": true,
-    "must_change_password": false
-  },
-  {
-    "id": 7,
+    "id": 5,
     "name": "SS Manager",
     "email": "ss",
     "password": "ss",
@@ -54,9 +43,8 @@
     "is_active": true,
     "must_change_password": false
   },
-
   {
-    "id": 12,
+    "id": 6,
     "name": "shoheb",
     "email": "shohebkhan@123",
     "password": "sujal111",
@@ -67,7 +55,7 @@
     "must_change_password": true
   },
   {
-    "id": 13,
+    "id": 7,
     "name": "jugal",
     "email": "jugalpatne125@gmail.com",
     "password": "jugal123",
@@ -76,5 +64,35 @@
     "restaurant_name": "Dosti cafe",
     "is_active": true,
     "must_change_password": true
+  },
+  {
+    "id": 3,
+    "name": "sujal",
+    "email": "sujalpatne05@gmail.com",
+    "password": "sujal222",
+    "role": "admin",
+    "restaurant_id": 2,
+    "restaurant_name": "Dosti cafe",
+    "is_active": true
+  },
+  {
+    "id": 4,
+    "name": "mukesh",
+    "email": "sujalpatne583@gmail.com",
+    "password": "sujal111",
+    "role": "manager",
+    "restaurant_id": 2,
+    "restaurant_name": "Dosti cafe",
+    "is_active": true
+  },
+  {
+    "id": 5,
+    "name": "jupan",
+    "email": "sujalpatne@gmail.com",
+    "password": "sujal111",
+    "role": "staff",
+    "restaurant_id": 2,
+    "restaurant_name": "Dosti cafe",
+    "is_active": true
   }
 ]

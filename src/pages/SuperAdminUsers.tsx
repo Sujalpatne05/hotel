@@ -15,6 +15,7 @@ type ApiAdminUser = {
   id: number;
   name: string;
   email: string;
+  password?: string;
   role: "admin" | "manager" | "staff";
   restaurant_name: string;
   is_active: boolean;
@@ -124,7 +125,7 @@ export default function SuperAdminUsers() {
     }
 
     if (!addForm.temporaryPassword || !addForm.temporaryPassword.trim()) {
-      setError("Please enter temporary password");
+      setError("Please enter password");
       return;
     }
     if (addForm.temporaryPassword.trim().length < 6) {
@@ -295,6 +296,7 @@ export default function SuperAdminUsers() {
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">User</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Role</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Restaurant</th>
+                  <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Password</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Status</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500">Password Policy</th>
                   <th className="px-4 py-3 text-xs font-bold uppercase text-slate-500" />
@@ -303,10 +305,10 @@ export default function SuperAdminUsers() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td className="px-4 py-5 text-sm text-slate-500" colSpan={6}>Loading users...</td>
+                    <td className="px-4 py-5 text-sm text-slate-500" colSpan={7}>Loading users...</td>
                   </tr>
                 ) : (
-                  filteredUsers.map((user, idx) => (
+                  filteredUsers.map((user) => (
                     <tr key={user.id} className="border-t border-slate-100">
                       <td className="px-4 py-3">
                         <div className="font-semibold text-slate-900">{user.name}</div>
@@ -323,6 +325,7 @@ export default function SuperAdminUsers() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-700">{user.restaurant_name || "-"}</td>
+                      <td className="px-4 py-3 text-sm font-mono text-slate-700">{user.password || "-"}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${user.is_active ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-700"}`}>
                           {user.is_active ? "active" : "inactive"}
@@ -337,16 +340,16 @@ export default function SuperAdminUsers() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="relative inline-block text-left">
-                          <button className="min-h-10 min-w-10 rounded-full p-2.5 hover:bg-slate-100" onClick={() => setShowMenu(idx)}>
+                          <button className="min-h-10 min-w-10 rounded-full p-2.5 hover:bg-slate-100" onClick={() => setShowMenu(user.id)}>
                             <MoreVertical className="h-5 w-5 text-slate-400" />
                           </button>
-                          {showMenu === idx && (
+                          {showMenu === user.id && (
                             <div className="absolute right-0 z-10 mt-2 w-44 rounded-lg border border-slate-200 bg-white shadow-lg">
                               <button className="block min-h-10 w-full px-4 py-2 text-left text-sm hover:bg-slate-50" onClick={() => { setShowMenu(null); handleToggleStatus(user); }}>
                                 {user.is_active ? "Deactivate" : "Activate"}
                               </button>
                               <button className="block min-h-10 w-full px-4 py-2 text-left text-sm hover:bg-slate-50" onClick={() => { setShowMenu(null); handleResetTempPassword(user.id); }}>
-                                Reset Temp Password
+                                Reset Password
                               </button>
                               <button className="block min-h-10 w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50" onClick={() => { setShowMenu(null); setDeleteUser(user); }}>
                                 Delete User
@@ -395,8 +398,8 @@ export default function SuperAdminUsers() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm font-semibold text-slate-700">Temporary Password</label>
-                  <input type="password" minLength={8} className="w-full rounded-lg border border-slate-300 px-3 py-2" value={addForm.temporaryPassword} onChange={(event) => setAddForm((prev) => ({ ...prev, temporaryPassword: event.target.value }))} required />
+                  <label className="mb-1 block text-sm font-semibold text-slate-700">Password</label>
+                  <input type="password" minLength={6} className="w-full rounded-lg border border-slate-300 px-3 py-2" value={addForm.temporaryPassword} onChange={(event) => setAddForm((prev) => ({ ...prev, temporaryPassword: event.target.value }))} required />
                 </div>
                 <div className="flex justify-end gap-2 pt-2">
                   <button type="button" className="min-h-10 rounded-lg border border-slate-300 px-4 py-2 text-sm" onClick={() => setShowAddModal(false)}>

@@ -77,10 +77,6 @@ export default function SuperAdminRestaurants() {
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>("");
-  const [quickAdminEnabled, setQuickAdminEnabled] = useState(true);
-  const [secondAdminEnabled, setSecondAdminEnabled] = useState(false);
-  const [adminOneForm, setAdminOneForm] = useState({ name: "", email: "", temporaryPassword: "" });
-  const [adminTwoForm, setAdminTwoForm] = useState({ name: "", email: "", temporaryPassword: "" });
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -183,39 +179,6 @@ export default function SuperAdminRestaurants() {
     });
     setLogoFile(null);
     setLogoPreview("");
-    setQuickAdminEnabled(true);
-    setSecondAdminEnabled(false);
-    setAdminOneForm({ name: "", email: "", temporaryPassword: "" });
-    setAdminTwoForm({ name: "", email: "", temporaryPassword: "" });
-  }
-
-  async function createAdminAccount(
-    headers: Record<string, string>,
-    payload: { name: string; email: string; restaurantName: string; restaurantId: number; temporaryPassword: string }
-  ) {
-    const response = await fetch(`${API_BASE_URL}/superadmin/users`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        name: payload.name.trim(),
-        email: payload.email.trim(),
-        role: "admin",
-        restaurantId: payload.restaurantId,
-        restaurantName: payload.restaurantName.trim(),
-        temporaryPassword: payload.temporaryPassword,
-      }),
-    });
-    const data = await response.json();
-
-    if (!response.ok) {
-      if (isAuthError(response.status)) {
-        clearAuthSession();
-        window.location.href = "/superadmin-login";
-        return;
-      }
-      const reason = data?.error || "Unable to create admin account.";
-      throw new Error(`${payload.email.trim()}: ${reason}`);
-    }
   }
 
   async function handleAdd(e: React.FormEvent) {
@@ -226,32 +189,6 @@ export default function SuperAdminRestaurants() {
     if (!headers) {
       setError("Session expired. Login again as superadmin.");
       return;
-    }
-
-    if (quickAdminEnabled) {
-      if (!adminOneForm.name || !adminOneForm.email || !adminOneForm.temporaryPassword) {
-        setError("Primary admin details are required for quick setup.");
-        return;
-      }
-      if (secondAdminEnabled && (!adminTwoForm.name || !adminTwoForm.email || !adminTwoForm.temporaryPassword)) {
-        setError("Second admin details are incomplete.");
-        return;
-      }
-      if (secondAdminEnabled && adminOneForm.email.trim().toLowerCase() === adminTwoForm.email.trim().toLowerCase()) {
-        setError("Admin 1 and Admin 2 email must be different.");
-        return;
-      }
-      
-      // Validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(adminOneForm.email.trim())) {
-        setError("Admin 1 email format is invalid.");
-        return;
-      }
-      if (secondAdminEnabled && !emailRegex.test(adminTwoForm.email.trim())) {
-        setError("Admin 2 email format is invalid.");
-        return;
-      }
     }
 
     try {
@@ -268,16 +205,9 @@ export default function SuperAdminRestaurants() {
         logo: form.logo || null,
         subscriptionStartDate: form.subscriptionStartDate,
         subscriptionExpiryDate: form.subscriptionExpiryDate,
-        // Include admin credentials if quick admin is enabled
-        ...(quickAdminEnabled && {
-          admin_name: adminOneForm.name.trim(),
-          admin_email: adminOneForm.email.trim(),
-          admin_password: adminOneForm.temporaryPassword.trim(),
-        }),
       };
       
       console.log("[RESTAURANT] Sending payload:", payload);
-      console.log("[RESTAURANT] Headers:", headers);
       
       const createResponse = await fetch(`${API_BASE_URL}/superadmin/restaurants`, {
         method: "POST",
@@ -285,73 +215,15 @@ export default function SuperAdminRestaurants() {
         body: JSON.stringify(payload),
       });
       
-      console.log("[RESTAURANT] Response status:", createResponse.status);
       const createData = await createResponse.json();
-      console.log("[RESTAURANT] Response data:", createData);
       
       if (!createResponse.ok) {
         setError(createData?.error || "Unable to create restaurant.");
         return;
       }
 
-      const adminFailures: string[] = [];
-      let createdAdmins = 0;
-
-      if (quickAdminEnabled) {
-        try {
-          console.log("[ADMIN] Creating admin account 1:", adminOneForm.email);
-          await createAdminAccount(headers, {
-            ...adminOneForm,
-            restaurantName: form.name,
-            restaurantId: createData.id,
-          });
-          createdAdmins += 1;
-          console.log("[ADMIN] ✅ Admin 1 created successfully");
-        } catch (adminCreateError) {
-          const errorMsg = adminCreateError instanceof Error ? adminCreateError.message : "Admin 1 creation failed";
-          console.log("[ADMIN] ❌ Admin 1 creation failed:", errorMsg);
-          adminFailures.push(errorMsg);
-        }
-
-        if (secondAdminEnabled) {
-          try {
-            console.log("[ADMIN] Creating admin account 2:", adminTwoForm.email);
-            await createAdminAccount(headers, {
-              ...adminTwoForm,
-              restaurantName: form.name,
-              restaurantId: createData.id,
-            });
-            createdAdmins += 1;
-            console.log("[ADMIN] ✅ Admin 2 created successfully");
-          } catch (adminCreateError) {
-            const errorMsg = adminCreateError instanceof Error ? adminCreateError.message : "Admin 2 creation failed";
-            console.log("[ADMIN] ❌ Admin 2 creation failed:", errorMsg);
-            adminFailures.push(errorMsg);
-          }
-        }
-      }
-
       await fetchRestaurants();
-
-      if (!quickAdminEnabled) {
-        setMessage("Restaurant created successfully.");
-      } else if (adminFailures.length === 0) {
-        setMessage(
-          createdAdmins === 2
-            ? "Restaurant created with 2 admin accounts. Temporary credentials dispatched (demo queue)."
-            : "Restaurant created with admin account. Temporary credentials dispatched (demo queue)."
-        );
-      } else {
-        setMessage("Restaurant created, but some admin accounts were not created.");
-        const errorDetails = adminFailures.map(err => {
-          if (err.includes("already exists")) {
-            return `Email already in use - ${err.split(":")[0]}`;
-          }
-          return err;
-        }).join(" | ");
-        setError(errorDetails);
-      }
-
+      setMessage("Restaurant created successfully. Add admins from the Users page.");
       closeModal();
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Unable to create restaurant.");
@@ -720,107 +592,7 @@ export default function SuperAdminRestaurants() {
                 </label>
               )}
 
-              {!editId && (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">Quick Admin Setup</p>
-                      <p className="text-xs text-slate-500">Create admin access while onboarding this restaurant.</p>
-                    </div>
-                    <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={quickAdminEnabled}
-                        onChange={(event) => setQuickAdminEnabled(event.target.checked)}
-                      />
-                      Enable
-                    </label>
-                  </div>
 
-                  {quickAdminEnabled && (
-                    <div className="mt-3 space-y-3">
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <label className="block sm:col-span-2">
-                          <span className="mb-1 block text-sm font-semibold text-slate-700">Admin 1 Full Name</span>
-                          <input
-                            type="text"
-                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                            value={adminOneForm.name}
-                            onChange={(event) => setAdminOneForm((prev) => ({ ...prev, name: event.target.value }))}
-                            required={quickAdminEnabled}
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="mb-1 block text-sm font-semibold text-slate-700">Admin 1 Email</span>
-                          <input
-                            type="email"
-                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                            value={adminOneForm.email}
-                            onChange={(event) => setAdminOneForm((prev) => ({ ...prev, email: event.target.value }))}
-                            required={quickAdminEnabled}
-                          />
-                        </label>
-                        <label className="block">
-                          <span className="mb-1 block text-sm font-semibold text-slate-700">Admin 1 Temp Password</span>
-                          <input
-                            type="password"
-                            minLength={8}
-                            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                            value={adminOneForm.temporaryPassword}
-                            onChange={(event) => setAdminOneForm((prev) => ({ ...prev, temporaryPassword: event.target.value }))}
-                            required={quickAdminEnabled}
-                          />
-                        </label>
-                      </div>
-
-                      <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={secondAdminEnabled}
-                          onChange={(event) => setSecondAdminEnabled(event.target.checked)}
-                        />
-                        Add second admin now
-                      </label>
-
-                      {secondAdminEnabled && (
-                        <div className="grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-3 sm:grid-cols-2">
-                          <label className="block sm:col-span-2">
-                            <span className="mb-1 block text-sm font-semibold text-slate-700">Admin 2 Full Name</span>
-                            <input
-                              type="text"
-                              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                              value={adminTwoForm.name}
-                              onChange={(event) => setAdminTwoForm((prev) => ({ ...prev, name: event.target.value }))}
-                              required={secondAdminEnabled}
-                            />
-                          </label>
-                          <label className="block">
-                            <span className="mb-1 block text-sm font-semibold text-slate-700">Admin 2 Email</span>
-                            <input
-                              type="email"
-                              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                              value={adminTwoForm.email}
-                              onChange={(event) => setAdminTwoForm((prev) => ({ ...prev, email: event.target.value }))}
-                              required={secondAdminEnabled}
-                            />
-                          </label>
-                          <label className="block">
-                            <span className="mb-1 block text-sm font-semibold text-slate-700">Admin 2 Temp Password</span>
-                            <input
-                              type="password"
-                              minLength={8}
-                              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                              value={adminTwoForm.temporaryPassword}
-                              onChange={(event) => setAdminTwoForm((prev) => ({ ...prev, temporaryPassword: event.target.value }))}
-                              required={secondAdminEnabled}
-                            />
-                          </label>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
 
               <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
                 <button type="button" className="min-h-11 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700" onClick={closeModal}>

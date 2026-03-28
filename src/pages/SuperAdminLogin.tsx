@@ -7,7 +7,11 @@ const API_BASE_URL = (() => {
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
     return "/api";
   }
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  // For localhost development, always use /api proxy
+  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    return "/api";
+  }
+  return configured || "/api";
 })();
 
 export default function SuperAdminLogin() {

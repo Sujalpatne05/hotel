@@ -161,7 +161,7 @@ export function AppSidebar() {
           {!collapsed && (
             <div className="text-center">
               <p className="text-sm font-semibold text-sidebar-foreground">
-                {userRole === "admin" && restaurantName ? restaurantName : "Management System"}
+                {restaurantName ? restaurantName : "Management System"}
               </p>
             </div>
           )}

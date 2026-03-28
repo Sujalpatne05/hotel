@@ -210,6 +210,16 @@ const parseBody = (req) =>
     req.on("error", reject);
   });
 
+// Save users to JSON file
+function saveUsers() {
+  try {
+    writeFileSync(usersFilePath, JSON.stringify(users, null, 2));
+    console.log("[PERSIST] ✅ Users saved to users.json");
+  } catch (err) {
+    console.error("[PERSIST] ❌ Error saving users.json:", err.message);
+  }
+}
+
 // Initialize subscriptions for existing restaurants on server start
 function initializeSubscriptions() {
   subscriptions.length = 0; // Clear existing subscriptions
@@ -900,27 +910,10 @@ const server = createServer(async (req, res) => {
       };
       restaurants.push(restaurant);
       
-      // Create admin account for the restaurant
-      // Use custom credentials if provided, otherwise generate them
-      const adminEmail = String(body.admin_email || `admin${restaurant.id}@restrohub.local`).toLowerCase().trim();
-      const adminPassword = String(body.admin_password || `admin${restaurant.id}123`).trim();
-      const adminName = String(body.admin_name || `${restaurant.name} Admin`).trim();
-      
-      const adminUser = {
-        id: nextUserId++,
-        name: adminName,
-        email: adminEmail,
-        password: adminPassword,
-        role: "admin",
-        restaurant_id: restaurant.id,
-        restaurant_name: restaurant.name,
-        is_active: true,
-      };
-      users.push(adminUser);
+      // Don't create admin here - let frontend handle it via /superadmin/users endpoint
+      // This allows the frontend to create multiple admins if needed
       
       console.log(`[RESTAURANT] ✅ Created restaurant: ${restaurant.name} (ID: ${restaurant.id})`);
-      console.log(`[RESTAURANT] ✅ Created admin account: ${adminEmail} / ${adminPassword}`);
-      console.log(`[RESTAURANT] Total users now: ${users.length}`);
       
       // Also create a subscription for the new restaurant
       const subscriptionStartDate = body.subscriptionStartDate || new Date().toISOString().split('T')[0];
@@ -963,9 +956,7 @@ const server = createServer(async (req, res) => {
       
       send(res, 201, {
         ...restaurant,
-        admin_created: true,
-        admin_email: adminEmail,
-        admin_password: adminPassword,
+        admin_created: false,
       });
       return;
     }
@@ -1049,7 +1040,7 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/superadmin/users") {
-      send(res, 200, users.map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, restaurant_name: u.restaurant_name, is_active: u.is_active })));
+      send(res, 200, users.map(u => ({ id: u.id, name: u.name, email: u.email, password: u.password, role: u.role, restaurant_name: u.restaurant_name, is_active: u.is_active, must_change_password: u.must_change_password })));
       return;
     }
 
@@ -1101,6 +1092,7 @@ const server = createServer(async (req, res) => {
       };
 
       users.push(newUser);
+      saveUsers(); // Persist the new user to JSON
       console.log(`[USER] ✅ Created user: ${email} (${role})`);
 
       send(res, 201, {
@@ -1130,6 +1122,7 @@ const server = createServer(async (req, res) => {
         users[userIndex].is_active = Boolean(body.isActive);
       }
 
+      saveUsers(); // Persist the updated user to JSON
       console.log(`[USER] ✅ Updated user ${userId}: is_active=${users[userIndex].is_active}`);
       
       send(res, 200, {
@@ -1165,6 +1158,7 @@ const server = createServer(async (req, res) => {
       users[userIndex].password = String(body.temporaryPassword).trim();
       users[userIndex].must_change_password = true;
 
+      saveUsers(); // Persist the updated user to JSON
       console.log(`[USER] ✅ Reset password for user ${userId}`);
       
       send(res, 200, {
@@ -1191,6 +1185,7 @@ const server = createServer(async (req, res) => {
       }
 
       const deletedUser = users.splice(userIndex, 1)[0];
+      saveUsers(); // Persist the deletion to JSON
       console.log(`[USER] ✅ Deleted user ${userId}: ${deletedUser.email}`);
       
       send(res, 200, {
