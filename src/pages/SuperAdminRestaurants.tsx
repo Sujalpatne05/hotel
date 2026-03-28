@@ -241,6 +241,17 @@ export default function SuperAdminRestaurants() {
         setError("Admin 1 and Admin 2 email must be different.");
         return;
       }
+      
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(adminOneForm.email.trim())) {
+        setError("Admin 1 email format is invalid.");
+        return;
+      }
+      if (secondAdminEnabled && !emailRegex.test(adminTwoForm.email.trim())) {
+        setError("Admin 2 email format is invalid.");
+        return;
+      }
     }
 
     try {
@@ -288,26 +299,34 @@ export default function SuperAdminRestaurants() {
 
       if (quickAdminEnabled) {
         try {
+          console.log("[ADMIN] Creating admin account 1:", adminOneForm.email);
           await createAdminAccount(headers, {
             ...adminOneForm,
             restaurantName: form.name,
             restaurantId: createData.id,
           });
           createdAdmins += 1;
+          console.log("[ADMIN] ✅ Admin 1 created successfully");
         } catch (adminCreateError) {
-          adminFailures.push(adminCreateError instanceof Error ? adminCreateError.message : "Admin 1 creation failed");
+          const errorMsg = adminCreateError instanceof Error ? adminCreateError.message : "Admin 1 creation failed";
+          console.log("[ADMIN] ❌ Admin 1 creation failed:", errorMsg);
+          adminFailures.push(errorMsg);
         }
 
         if (secondAdminEnabled) {
           try {
+            console.log("[ADMIN] Creating admin account 2:", adminTwoForm.email);
             await createAdminAccount(headers, {
               ...adminTwoForm,
               restaurantName: form.name,
               restaurantId: createData.id,
             });
             createdAdmins += 1;
+            console.log("[ADMIN] ✅ Admin 2 created successfully");
           } catch (adminCreateError) {
-            adminFailures.push(adminCreateError instanceof Error ? adminCreateError.message : "Admin 2 creation failed");
+            const errorMsg = adminCreateError instanceof Error ? adminCreateError.message : "Admin 2 creation failed";
+            console.log("[ADMIN] ❌ Admin 2 creation failed:", errorMsg);
+            adminFailures.push(errorMsg);
           }
         }
       }
@@ -324,7 +343,13 @@ export default function SuperAdminRestaurants() {
         );
       } else {
         setMessage("Restaurant created, but some admin accounts were not created.");
-        setError(adminFailures.join(" | "));
+        const errorDetails = adminFailures.map(err => {
+          if (err.includes("already exists")) {
+            return `Email already in use - ${err.split(":")[0]}`;
+          }
+          return err;
+        }).join(" | ");
+        setError(errorDetails);
       }
 
       closeModal();
