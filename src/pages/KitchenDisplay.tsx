@@ -233,7 +233,7 @@ export default function KitchenDisplay() {
   };
 
   const filteredOrders = orders
-    .filter((order) => order.status !== "served" && order.status !== "completed")
+    .filter((order) => order.status !== "served")
     .sort((a, b) => {
       if (a.priority === "urgent" && b.priority !== "urgent") return -1;
       if (a.priority !== "urgent" && b.priority === "urgent") return 1;
@@ -310,13 +310,13 @@ export default function KitchenDisplay() {
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle className="text-xl">{order.orderNumber}</CardTitle>
-                        <CardDescription className="text-sm mt-1">
+                        <div className="text-sm mt-1">
                           {order.type === "dine-in" ? `Table ${order.tableNumber}` : (
                             <Badge className={order.type === "takeout" ? "bg-orange-500" : "bg-purple-500"}>
                               {order.type === "takeout" ? "TAKEAWAY" : "DELIVERY"}
                             </Badge>
                           )}
-                        </CardDescription>
+                        </div>
                       </div>
                       <div className="flex flex-col gap-2 items-end">
                         {order.priority === "urgent" && <Badge className="bg-red-500"><AlertCircle className="h-3 w-3 mr-1" />URGENT</Badge>}
