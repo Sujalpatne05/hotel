@@ -22,11 +22,12 @@ type InventoryItem = {
   id: number;
   name: string;
   unit: string;
-  stock: number;
+  stock?: number;
+  quantity?: number;
   min_stock: number;
   max_stock: number;
   category: string;
-  updated_at: string;
+  updated_at?: string;
 };
 
 const formatUpdatedLabel = (iso: string) => {
@@ -62,7 +63,7 @@ const Inventory = () => {
       return;
     }
 
-    const response = await fetch(`${API_BASE_URL}/inventory`, { headers });
+    const response = await fetch(`/api/inventory`, { headers });
     if (isAuthError(response.status)) {
       clearAuthSession();
       window.location.href = "/admin-login";
@@ -74,7 +75,13 @@ const Inventory = () => {
       throw new Error(data?.error || "Failed to load inventory");
     }
 
-    setItems(Array.isArray(data) ? data : []);
+    // Normalize data: backend returns 'quantity', frontend uses 'stock'
+    const normalizedData = Array.isArray(data) ? data.map(item => ({
+      ...item,
+      stock: item.stock || item.quantity || 0,
+      updated_at: item.updated_at || new Date().toISOString()
+    })) : [];
+    setItems(normalizedData);
   }, []);
 
   useEffect(() => {
@@ -144,7 +151,7 @@ const Inventory = () => {
     const headers = buildAuthHeaders();
     if (!headers) return;
 
-    const response = await fetch(`${API_BASE_URL}/inventory`, {
+    const response = await fetch(`/api/inventory`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -194,7 +201,7 @@ const Inventory = () => {
     const headers = buildAuthHeaders();
     if (!headers) return;
 
-    const response = await fetch(`${API_BASE_URL}/inventory/${restockModal.itemId}`, {
+    const response = await fetch(`/api/inventory/${restockModal.itemId}`, {
       method: "PATCH",
       headers,
       body: JSON.stringify({ quantity: Number(restockQty) }),

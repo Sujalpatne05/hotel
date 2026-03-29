@@ -107,9 +107,9 @@ const crmCustomers = [
 ];
 
 const inventory = [
-  { id: 1, name: "Chicken", quantity: 25, unit: "kg", min_stock: 10, max_stock: 50, category: "Meat" },
-  { id: 2, name: "Paneer", quantity: 8, unit: "kg", min_stock: 5, max_stock: 30, category: "Dairy" },
-  { id: 3, name: "Basmati Rice", quantity: 45, unit: "kg", min_stock: 20, max_stock: 100, category: "Grains" },
+  { id: 1, name: "Chicken", quantity: 25, stock: 25, unit: "kg", min_stock: 10, max_stock: 50, category: "Meat", updated_at: new Date().toISOString() },
+  { id: 2, name: "Paneer", quantity: 8, stock: 8, unit: "kg", min_stock: 5, max_stock: 30, category: "Dairy", updated_at: new Date().toISOString() },
+  { id: 3, name: "Basmati Rice", quantity: 45, stock: 45, unit: "kg", min_stock: 20, max_stock: 100, category: "Grains", updated_at: new Date().toISOString() },
 ];
 
 const recipes = [
@@ -742,24 +742,33 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && path === "/inventory") {
-      send(res, 200, inventory);
+      // Normalize inventory items to include both 'stock' and 'quantity' for compatibility
+      const normalizedInventory = inventory.map(item => ({
+        ...item,
+        stock: item.stock || item.quantity || 0,
+        updated_at: item.updated_at || new Date().toISOString()
+      }));
+      send(res, 200, normalizedInventory);
       return;
     }
 
     if (req.method === "POST" && path === "/inventory") {
       const body = await parseBody(req);
-      if (!body.name || Number(body.quantity) < 0) {
+      const quantity = Number(body.quantity || body.stock || 0);
+      if (!body.name || quantity < 0) {
         send(res, 400, { error: "Invalid inventory payload" });
         return;
       }
       const item = {
         id: Math.max(...inventory.map(i => i.id), 0) + 1,
         name: String(body.name).trim(),
-        quantity: Number(body.quantity),
+        quantity: quantity,
+        stock: quantity,
         unit: String(body.unit || "kg"),
         min_stock: Number(body.min_stock || 0),
         max_stock: Number(body.max_stock || 0),
         category: String(body.category || "General"),
+        updated_at: new Date().toISOString(),
       };
       inventory.push(item);
       send(res, 201, item);
@@ -774,8 +783,14 @@ const server = createServer(async (req, res) => {
         send(res, 404, { error: "Inventory item not found" });
         return;
       }
-      if (body.quantity !== undefined) item.quantity = Number(body.quantity);
-      if (body.stock !== undefined) item.quantity = Number(body.stock);
+      if (body.quantity !== undefined) {
+        item.quantity = Number(body.quantity);
+        item.stock = Number(body.quantity);
+      }
+      if (body.stock !== undefined) {
+        item.quantity = Number(body.stock);
+        item.stock = Number(body.stock);
+      }
       if (body.name !== undefined) item.name = String(body.name);
       if (body.unit !== undefined) item.unit = String(body.unit);
       if (body.min_stock !== undefined) item.min_stock = Number(body.min_stock);
