@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { saveAuthSession } from "@/lib/session";
 import { ChefHat, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
@@ -13,6 +13,33 @@ const API_BASE_URL = (() => {
   }
   return configured || "/api";
 })();
+
+const foodItems = [
+  { emoji: "🍔", size: 40, left: 5, delay: 0, duration: 6 },
+  { emoji: "🍕", size: 38, left: 12, delay: 0.5, duration: 7 },
+  { emoji: "🍟", size: 36, left: 20, delay: 1, duration: 6.5 },
+  { emoji: "🍜", size: 42, left: 28, delay: 1.5, duration: 7.5 },
+  { emoji: "🍰", size: 38, left: 35, delay: 0.2, duration: 6 },
+  { emoji: "🍣", size: 40, left: 42, delay: 0.8, duration: 7 },
+  { emoji: "🥤", size: 34, left: 50, delay: 1.2, duration: 6.5 },
+  { emoji: "🍩", size: 40, left: 58, delay: 0.3, duration: 7 },
+  { emoji: "🌮", size: 36, left: 65, delay: 1.8, duration: 6.5 },
+  { emoji: "🍦", size: 34, left: 72, delay: 0.6, duration: 7 },
+  { emoji: "🥗", size: 38, left: 80, delay: 1.3, duration: 6 },
+  { emoji: "🍪", size: 36, left: 88, delay: 0.9, duration: 7.5 },
+  { emoji: "🍔", size: 40, left: 8, delay: 2, duration: 6.8 },
+  { emoji: "🍕", size: 38, left: 15, delay: 2.5, duration: 7.2 },
+  { emoji: "🍟", size: 36, left: 25, delay: 2.1, duration: 6.3 },
+  { emoji: "🍜", size: 42, left: 32, delay: 2.8, duration: 7.8 },
+  { emoji: "🍰", size: 38, left: 40, delay: 2.3, duration: 6.5 },
+  { emoji: "🍣", size: 40, left: 48, delay: 2.7, duration: 7.1 },
+  { emoji: "🥤", size: 34, left: 55, delay: 2.4, duration: 6.7 },
+  { emoji: "🍩", size: 40, left: 62, delay: 2.9, duration: 7.4 },
+  { emoji: "🌮", size: 36, left: 70, delay: 2.2, duration: 6.6 },
+  { emoji: "🍦", size: 34, left: 78, delay: 2.6, duration: 7.3 },
+  { emoji: "🥗", size: 38, left: 85, delay: 2.1, duration: 6.4 },
+  { emoji: "🍪", size: 36, left: 92, delay: 2.5, duration: 7.6 },
+];
 
 const LoginFixed = () => {
   const [username, setUsername] = useState("");
@@ -66,15 +93,54 @@ const LoginFixed = () => {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)" }}>
-      <div style={{ width: "100%", maxWidth: 400, padding: "0 20px" }}>
-        <div style={{ borderRadius: 20, background: "white", padding: "40px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-          <div style={{ textAlign: "center", marginBottom: 30 }}>
-            <div style={{ width: 70, height: 70, borderRadius: 15, margin: "0 auto 15px", background: "linear-gradient(135deg,#e53935,#ff6f00)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <ChefHat style={{ width: 40, height: 40, color: "white" }} />
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)", position: "relative", overflow: "hidden" }}>
+      {/* Animated food items */}
+      {foodItems.map((item, i) => (
+        <div
+          key={i}
+          style={{
+            position: "fixed",
+            left: `${item.left}%`,
+            top: "-60px",
+            fontSize: item.size,
+            zIndex: 1,
+            pointerEvents: "none",
+            userSelect: "none",
+            animation: `fall ${item.duration}s ease-in ${item.delay}s infinite`,
+            filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.2))",
+          }}
+        >
+          {item.emoji}
+        </div>
+      ))}
+
+      {/* Twinkling stars background */}
+      {Array.from({ length: 40 }).map((_, i) => (
+        <div
+          key={`star-${i}`}
+          style={{
+            position: "fixed",
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            width: Math.random() * 2 + 1,
+            height: Math.random() * 2 + 1,
+            borderRadius: "50%",
+            background: "white",
+            zIndex: 0,
+            pointerEvents: "none",
+            animation: `twinkle ${Math.random() * 3 + 2}s ease-in-out ${Math.random() * 4}s infinite`,
+          }}
+        />
+      ))}
+
+      <div style={{ width: "100%", maxWidth: 500, padding: "0 20px", position: "relative", zIndex: 10 }}>
+        <div style={{ borderRadius: 20, background: "white", padding: "50px", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }} className="login-card">
+          <div style={{ textAlign: "center", marginBottom: 35 }}>
+            <div style={{ width: 90, height: 90, borderRadius: 15, margin: "0 auto 20px", background: "linear-gradient(135deg,#e53935,#ff6f00)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <ChefHat style={{ width: 50, height: 50, color: "white" }} />
             </div>
-            <h1 style={{ fontSize: 28, fontWeight: 900, color: "#1a1a2e", margin: "0 0 5px" }}>RestroHub</h1>
-            <p style={{ color: "#999", fontSize: 13, margin: 0 }}>Restaurant Management System</p>
+            <h1 style={{ fontSize: 32, fontWeight: 900, color: "#1a1a2e", margin: "0 0 8px" }}>RestroHub</h1>
+            <p style={{ color: "#999", fontSize: 14, margin: 0 }}>Restaurant Management System</p>
           </div>
 
           {error && (
@@ -84,39 +150,39 @@ const LoginFixed = () => {
           )}
 
           <form onSubmit={handleSubmit}>
-            <div style={{ marginBottom: 15 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 8 }}>Email or Username</label>
+            <div style={{ marginBottom: 18 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 10 }}>Email or Username</label>
               <div style={{ position: "relative" }}>
-                <Mail style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 18, height: 18, color: "#ccc" }} />
+                <Mail style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 20, height: 20, color: "#e53935" }} />
                 <input
                   type="text"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
                   required
                   placeholder="Enter your email"
-                  style={{ width: "100%", paddingLeft: 40, padding: "12px", borderRadius: 10, border: "2px solid #f0f0f0", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", paddingLeft: 48, paddingRight: 12, paddingTop: 14, paddingBottom: 14, borderRadius: 10, border: "2px solid #f0f0f0", fontSize: 15, outline: "none", boxSizing: "border-box" }}
                 />
               </div>
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 8 }}>Password</label>
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 10 }}>Password</label>
               <div style={{ position: "relative" }}>
-                <Lock style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 18, height: 18, color: "#ccc" }} />
+                <Lock style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", width: 20, height: 20, color: "#e53935" }} />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
                   placeholder="Enter your password"
-                  style={{ width: "100%", paddingLeft: 40, paddingRight: 40, padding: "12px", borderRadius: 10, border: "2px solid #f0f0f0", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                  style={{ width: "100%", paddingLeft: 48, paddingRight: 48, paddingTop: 14, paddingBottom: 14, borderRadius: 10, border: "2px solid #f0f0f0", fontSize: 15, outline: "none", boxSizing: "border-box" }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
                 >
-                  {showPassword ? <EyeOff style={{ width: 18, height: 18, color: "#ccc" }} /> : <Eye style={{ width: 18, height: 18, color: "#ccc" }} />}
+                  {showPassword ? <EyeOff style={{ width: 20, height: 20, color: "#e53935" }} /> : <Eye style={{ width: 20, height: 20, color: "#e53935" }} />}
                 </button>
               </div>
             </div>
@@ -124,17 +190,77 @@ const LoginFixed = () => {
             <button
               type="submit"
               disabled={loading}
-              style={{ width: "100%", padding: "14px", borderRadius: 10, background: loading ? "#ffb3b3" : "linear-gradient(135deg,#e53935,#ff6f00)", border: "none", color: "white", fontWeight: 700, fontSize: 15, cursor: loading ? "not-allowed" : "pointer" }}
+              style={{ width: "100%", padding: "16px", borderRadius: 10, background: loading ? "#ffb3b3" : "linear-gradient(135deg,#e53935,#ff6f00)", border: "none", color: "white", fontWeight: 700, fontSize: 16, cursor: loading ? "not-allowed" : "pointer" }}
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
 
-          <div style={{ marginTop: 20, textAlign: "center", fontSize: 12, color: "#999" }}>
+          <div style={{ marginTop: 24, textAlign: "center", fontSize: 13, color: "#999" }}>
             Complete POS & Restaurant Management Solution
           </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes fall {
+          0% {
+            transform: translateY(-60px) rotate(0deg) scale(1);
+            opacity: 0;
+          }
+          5% {
+            opacity: 1;
+          }
+          90% {
+            opacity: 1;
+          }
+          100% {
+            transform: translateY(100vh) rotate(360deg) scale(0.8);
+            opacity: 0;
+          }
+        }
+
+        @keyframes twinkle {
+          0%, 100% {
+            opacity: 0.2;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.5);
+          }
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            box-shadow: 0 16px 40px rgba(229, 57, 53, 0.45);
+            transform: scale(1);
+          }
+          50% {
+            box-shadow: 0 20px 60px rgba(229, 57, 53, 0.7);
+            transform: scale(1.05);
+          }
+        }
+
+        @keyframes slideIn {
+          0% {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .login-card {
+          animation: slideIn 0.6s ease-out;
+        }
+
+        input::placeholder {
+          color: #ccc;
+        }
+      `}</style>
     </div>
   );
 };
