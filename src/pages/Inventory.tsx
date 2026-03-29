@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Plus, Search, AlertTriangle, Package, X } from "lucide-react";
+import { Plus, Search, AlertTriangle, Package } from "lucide-react";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StatCard } from "@/components/StatCard";
 import { buildAuthHeaders, clearAuthSession, isAuthError } from "@/lib/session";
@@ -62,7 +62,7 @@ const Inventory = () => {
       return;
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/inventory`, { headers });
+    const response = await fetch(`${API_BASE_URL}/inventory`, { headers });
     if (isAuthError(response.status)) {
       clearAuthSession();
       window.location.href = "/admin-login";
@@ -144,7 +144,7 @@ const Inventory = () => {
     const headers = buildAuthHeaders();
     if (!headers) return;
 
-    const response = await fetch(`${API_BASE_URL}/api/inventory`, {
+    const response = await fetch(`${API_BASE_URL}/inventory`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -194,7 +194,7 @@ const Inventory = () => {
     const headers = buildAuthHeaders();
     if (!headers) return;
 
-    const response = await fetch(`${API_BASE_URL}/api/inventory/${restockModal.itemId}`, {
+    const response = await fetch(`${API_BASE_URL}/inventory/${restockModal.itemId}`, {
       method: "PATCH",
       headers,
       body: JSON.stringify({ stock: Number(restockQty) }),
