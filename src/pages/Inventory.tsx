@@ -197,7 +197,7 @@ const Inventory = () => {
     const response = await fetch(`${API_BASE_URL}/inventory/${restockModal.itemId}`, {
       method: "PATCH",
       headers,
-      body: JSON.stringify({ stock: Number(restockQty) }),
+      body: JSON.stringify({ quantity: Number(restockQty) }),
     });
 
     if (!response.ok) {

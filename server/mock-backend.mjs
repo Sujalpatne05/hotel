@@ -766,6 +766,26 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "PATCH" && /^\/inventory\/\d+$/.test(path)) {
+      const id = Number(path.split("/")[2]);
+      const body = await parseBody(req);
+      const item = inventory.find(i => i.id === id);
+      if (!item) {
+        send(res, 404, { error: "Inventory item not found" });
+        return;
+      }
+      if (body.quantity !== undefined) item.quantity = Number(body.quantity);
+      if (body.stock !== undefined) item.quantity = Number(body.stock);
+      if (body.name !== undefined) item.name = String(body.name);
+      if (body.unit !== undefined) item.unit = String(body.unit);
+      if (body.min_stock !== undefined) item.min_stock = Number(body.min_stock);
+      if (body.max_stock !== undefined) item.max_stock = Number(body.max_stock);
+      if (body.category !== undefined) item.category = String(body.category);
+      item.updated_at = new Date().toISOString();
+      send(res, 200, item);
+      return;
+    }
+
     if (req.method === "GET" && path === "/recipes") {
       send(res, 200, recipes);
       return;
