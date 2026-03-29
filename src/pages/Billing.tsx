@@ -131,22 +131,7 @@ const Billing: React.FC = () => {
 	useEffect(() => {
 		if (selectedTable && orderType === "dine-in" && menu.length > 0) {
 			setLoadingOrder(true);
-			fetch(`http://localhost:5000/orders/table/${selectedTable}`, {
-				method: "GET",
-				headers: { "Authorization": `Bearer ${getAuthToken()}` }
-			})
-				.then(res => {
-					if (res.status === 404) {
-						// No existing order for this table - this is normal
-						setExistingOrder(null);
-						setOrderItems([]);
-						return null;
-					}
-					if (!res.ok) {
-						throw new Error(`Failed to load order: ${res.statusText}`);
-					}
-					return res.json();
-				})
+			apiRequest<any>(`/orders/table/${selectedTable}`, { method: "GET" }, true)
 				.then(data => {
 					if (!data || data.error) {
 						setExistingOrder(null);
