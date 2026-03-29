@@ -354,7 +354,8 @@ const Inventory = () => {
                 name="stock"
                 type="number"
                 min="0"
-                value={newItem.stock}
+                step="1"
+                value={newItem.stock || ""}
                 onChange={handleInputChange}
                 placeholder="0"
                 required
@@ -368,7 +369,8 @@ const Inventory = () => {
                 name="minStock"
                 type="number"
                 min="0"
-                value={newItem.minStock}
+                step="1"
+                value={newItem.minStock || ""}
                 onChange={handleInputChange}
                 placeholder="Alert when stock falls below this"
                 required
@@ -382,7 +384,8 @@ const Inventory = () => {
                 name="maxStock"
                 type="number"
                 min="0"
-                value={newItem.maxStock}
+                step="1"
+                value={newItem.maxStock || ""}
                 onChange={handleInputChange}
                 placeholder="Target stock level"
                 required
@@ -414,7 +417,8 @@ const Inventory = () => {
               <Input
                 type="number"
                 min="0"
-                value={restockQty}
+                step="1"
+                value={restockQty || ""}
                 onChange={(e) => setRestockQty(Number(e.target.value))}
                 placeholder="Enter new stock quantity"
                 required
