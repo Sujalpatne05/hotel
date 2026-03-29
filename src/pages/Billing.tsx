@@ -387,14 +387,29 @@ const Billing: React.FC = () => {
 														className="border rounded px-3 py-2 bg-orange-50 focus:border-orange-400 focus:ring-2 focus:ring-orange-200 transition-all"
 														value={selectedTable ?? ""}
 														onChange={e => setSelectedTable(Number(e.target.value))}
-														disabled={loadingTables || tables.filter(t => t.status === "available").length === 0}
+														disabled={loadingTables}
 													>
-														<option value="">{loadingTables ? "Loading tables..." : tables.filter(t => t.status === "available").length === 0 ? "No available tables" : "Select Table"}</option>
-														{tables.filter(t => t.status === "available").map(t => (
-															<option key={t.id} value={t.number}>
-																Table {t.number} ({t.section || "No section"}, {t.capacity} seats)
-															</option>
-														))}
+														<option value="">{loadingTables ? "Loading tables..." : "Select Table"}</option>
+														{/* Show available tables first */}
+														{tables.filter(t => t.status === "available").length > 0 && (
+															<optgroup label="Available Tables">
+																{tables.filter(t => t.status === "available").map(t => (
+																	<option key={t.id} value={t.number}>
+																		Table {t.number} ({t.section || "No section"}, {t.capacity} seats)
+																	</option>
+																))}
+															</optgroup>
+														)}
+														{/* Show occupied tables (for editing existing orders) */}
+														{tables.filter(t => t.status === "occupied").length > 0 && (
+															<optgroup label="Occupied Tables (Edit Order)">
+																{tables.filter(t => t.status === "occupied").map(t => (
+																	<option key={t.id} value={t.number}>
+																		Table {t.number} ({t.section || "No section"}, {t.capacity} seats)
+																	</option>
+																))}
+															</optgroup>
+														)}
 													</select>
 										</div>
 									</div>
