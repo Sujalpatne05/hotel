@@ -1,266 +1,268 @@
-# Production Deployment - Quick Start Guide
+# Production Deployment - Quick Start (30 minutes)
 
-**Time to Deploy**: 30-45 minutes  
-**Difficulty**: Easy  
-**Prerequisites**: GitHub, Render, Vercel accounts
-
----
-
-## STEP 1: Deploy Backend (5 minutes)
-
-### 1.1 Go to Render
-- Visit https://render.com
-- Sign in with GitHub
-
-### 1.2 Create Web Service
-- Click "New +" → "Web Service"
-- Select repository: `Sujalpatne05/hotel`
-- Select branch: `main`
-
-### 1.3 Configure
-```
-Name: restrohub-backend
-Environment: Node
-Build Command: npm install
-Start Command: node server/mock-backend.mjs
-Instance Type: Free (or Starter for production)
-```
-
-### 1.4 Add Environment Variables
-```
-PORT=5000
-NODE_ENV=production
-FRONTEND_URL=https://restrohub.vercel.app
-JWT_SECRET=your_secure_random_string
-SUPERADMIN_EMAIL=superadmin@restrohub.local
-SUPERADMIN_PASSWORD=super123
-```
-
-### 1.5 Deploy
-- Click "Create Web Service"
-- Wait 2-3 minutes
-- Note the URL: `https://restrohub-backend.onrender.com`
+## Recommended Stack
+- **Frontend**: Vercel
+- **Backend**: Render
+- **Database**: MongoDB Atlas
+- **Domain**: Optional (use provided URLs initially)
 
 ---
 
-## STEP 2: Deploy Frontend (5 minutes)
+## STEP 1: Deploy Frontend to Vercel (5 minutes)
 
-### 2.1 Go to Vercel
-- Visit https://vercel.com
-- Sign in with GitHub
+### 1.1 Sign up
+- Go to https://vercel.com
+- Click "Sign Up"
+- Choose "Continue with GitHub"
+- Authorize Vercel
 
-### 2.2 Import Project
-- Click "Add New..." → "Project"
-- Click "Import Git Repository"
-- Paste: `https://github.com/Sujalpatne05/hotel`
+### 1.2 Import Project
+- Click "New Project"
+- Select your GitHub repo (hotel)
 - Click "Import"
 
-### 2.3 Configure
-```
-Project Name: restrohub
-Framework: Vite
-Build Command: npm run build
-Output Directory: dist
-```
-
-### 2.4 Add Environment Variables
-```
-VITE_API_URL=https://restrohub-backend.onrender.com
-VITE_APP_NAME=RestroHub
-VITE_ENABLE_PWA=true
-```
-
-### 2.5 Deploy
+### 1.3 Configure
+- Framework: Vite (auto-detected)
+- Build Command: `npm run build`
+- Output Directory: `dist`
 - Click "Deploy"
-- Wait 2-3 minutes
-- Note the URL: `https://restrohub.vercel.app`
+
+### 1.4 Wait for Deployment
+- Takes 2-3 minutes
+- You'll get a URL like: `https://restrohub-xyz.vercel.app`
+- **Save this URL**
 
 ---
 
-## STEP 3: Update Backend CORS (2 minutes)
+## STEP 2: Deploy Backend to Render (5 minutes)
 
-### 3.1 Go to Render
-- Visit https://render.com/dashboard
-- Click on `restrohub-backend`
+### 2.1 Sign up
+- Go to https://render.com
+- Click "Sign Up"
+- Choose "Continue with GitHub"
+- Authorize Render
 
-### 3.2 Update Environment Variable
-- Click "Settings" → "Environment"
-- Update `FRONTEND_URL`:
-  ```
-  FRONTEND_URL=https://restrohub.vercel.app
-  ```
-- Click "Save"
-- Wait for redeploy (1-2 minutes)
+### 2.2 Create Web Service
+- Click "New +"
+- Select "Web Service"
+- Select your GitHub repo
+- Click "Connect"
+
+### 2.3 Configure Service
+- **Name**: `restrohub-backend`
+- **Environment**: Node
+- **Build Command**: `npm install`
+- **Start Command**: `node server/mock-backend.mjs`
+- **Plan**: Free
+- Click "Create Web Service"
+
+### 2.4 Wait for Deployment
+- Takes 3-5 minutes
+- You'll get a URL like: `https://restrohub-backend-xyz.onrender.com`
+- **Save this URL**
 
 ---
 
-## STEP 4: Test (5 minutes)
+## STEP 3: Connect Frontend to Backend (2 minutes)
 
-### 4.1 Test Frontend
-```
-Visit: https://restrohub.vercel.app
-Should see: Login page
+### 3.1 Update Frontend Environment
+- Go to Vercel dashboard
+- Select your project
+- Go to Settings → Environment Variables
+- Add new variable:
+  - **Name**: `VITE_API_URL`
+  - **Value**: `https://restrohub-backend-xyz.onrender.com`
+  - Click "Save"
+
+### 3.2 Redeploy Frontend
+- Go to Deployments
+- Click the latest deployment
+- Click "Redeploy"
+- Wait 1-2 minutes
+
+---
+
+## STEP 4: Update Backend CORS (2 minutes)
+
+### 4.1 Edit Backend Code
+- Open `server/mock-backend.mjs`
+- Find the CORS section (around line 20-30)
+- Update to include your Vercel URL:
+
+```javascript
+const corsOptions = {
+  origin: [
+    'https://restrohub-xyz.vercel.app',  // Your Vercel URL
+    'http://localhost:3000',
+    'http://localhost:8080'
+  ],
+  credentials: true
+};
 ```
 
-### 4.2 Test Login
-```
-Email: superadmin@restrohub.local
-Password: super123
-Should see: Dashboard
-```
-
-### 4.3 Test API Connection
-```
-Open DevTools (F12)
-Go to Network tab
-Try any action
-Should see: API calls to https://restrohub-backend.onrender.com
-```
-
-### 4.4 Test Backend Directly
+### 4.2 Commit and Push
 ```bash
-curl https://restrohub-backend.onrender.com/auth/login
-Should return: {"message":"Login endpoint"}
+git add server/mock-backend.mjs
+git commit -m "Update CORS for production"
+git push origin main
+```
+
+### 4.3 Wait for Auto-Deploy
+- Render auto-deploys on push
+- Takes 2-3 minutes
+
+---
+
+## STEP 5: Test Production (5 minutes)
+
+### 5.1 Test Frontend
+- Open your Vercel URL: `https://restrohub-xyz.vercel.app`
+- Should load without errors
+
+### 5.2 Test Login
+- Use admin credentials:
+  - Email: `admin@demo.com`
+  - Password: `admin123`
+- Should login successfully
+
+### 5.3 Test API Connection
+- Create a new restaurant
+- Add menu items
+- Create an order
+- Check if data persists
+
+### 5.4 Check Backend Health
+- Open: `https://restrohub-backend-xyz.onrender.com/health`
+- Should return: `{"status":"ok"}`
+
+---
+
+## STEP 6: Optional - Add Custom Domain (10 minutes)
+
+### 6.1 Buy Domain
+- Go to https://namecheap.com or https://domains.google.com
+- Buy your domain (e.g., `restrohub.com`)
+- **Cost**: $10-15/year
+
+### 6.2 Connect to Vercel
+- Vercel Dashboard → Settings → Domains
+- Add your domain
+- Follow DNS instructions
+- Takes 24-48 hours to propagate
+
+### 6.3 Connect to Render
+- Render Dashboard → Settings → Custom Domain
+- Add subdomain (e.g., `api.restrohub.com`)
+- Follow DNS instructions
+
+---
+
+## STEP 7: Set Up Database (Optional but Recommended)
+
+### 7.1 Sign up to MongoDB Atlas
+- Go to https://www.mongodb.com/cloud/atlas
+- Click "Try Free"
+- Create account
+
+### 7.2 Create Cluster
+- Click "Create a Deployment"
+- Choose "Free" tier
+- Select region closest to you
+- Click "Create Deployment"
+
+### 7.3 Get Connection String
+- Click "Connect"
+- Choose "Drivers"
+- Copy connection string
+- Replace `<password>` with your password
+
+### 7.4 Add to Render
+- Render Dashboard → Environment
+- Add variable:
+  - **Name**: `DATABASE_URL`
+  - **Value**: Your MongoDB connection string
+- Redeploy backend
+
+---
+
+## PRODUCTION URLS
+
+After deployment, you'll have:
+
+```
+Frontend: https://restrohub-xyz.vercel.app
+Backend:  https://restrohub-backend-xyz.onrender.com
+API:      https://restrohub-backend-xyz.onrender.com/api
 ```
 
 ---
 
-## STEP 5: Verify Everything Works (5 minutes)
+## IMPORTANT NOTES
 
-### 5.1 Create Restaurant
-1. Login as SuperAdmin
-2. Go to "Restaurants"
-3. Click "Add Restaurant"
-4. Fill form and submit
-5. Should see success message
+### Free Tier Limitations
+- **Vercel**: 100GB bandwidth/month (usually enough)
+- **Render**: Spins down after 15 min inactivity (cold start ~30s)
+- **MongoDB**: 512MB storage (enough for testing)
 
-### 5.2 Create User
-1. Go to "Users"
-2. Click "Create User"
-3. Fill form and submit
-4. Should see user in list
+### To Avoid Cold Starts
+- Upgrade Render to Starter ($7/month)
+- Or use Render's "Keep Alive" feature
 
-### 5.3 Check Mobile
-1. Open DevTools (F12)
-2. Click device toggle
-3. Test on mobile view
-4. All features should work
+### Data Persistence
+- Currently using file-based storage (`server/data/`)
+- **Not recommended for production**
+- Switch to MongoDB Atlas (recommended)
+
+### Backups
+- Set up MongoDB Atlas automated backups
+- Or use Render's backup features
 
 ---
 
 ## TROUBLESHOOTING
 
-### "Cannot reach backend"
-1. Check backend URL in Vercel environment variables
-2. Check `FRONTEND_URL` in Render environment variables
-3. Redeploy both services
+### Frontend shows "Cannot connect to API"
+1. Check `VITE_API_URL` is set correctly in Vercel
+2. Verify backend is running (check Render logs)
+3. Check CORS is configured correctly
+4. Clear browser cache and reload
 
-### "Build fails"
-1. Check build logs
-2. Try building locally: `npm run build`
-3. If local works, try Vercel again
+### Backend deployment fails
+1. Check build logs in Render
+2. Verify `package.json` has all dependencies
+3. Check `server/mock-backend.mjs` syntax
+4. Verify environment variables are set
 
-### "Login doesn't work"
-1. Check browser console for errors
-2. Check Network tab for API calls
-3. Verify test credentials are correct
+### Login not working
+1. Check backend is running
+2. Verify database connection (if using MongoDB)
+3. Check user data exists in database
+4. Review backend logs for errors
 
-### "Images not loading"
-1. Check if images are in `public/` folder
-2. Check Network tab for image URLs
-3. Ensure images are committed to git
-
----
-
-## IMPORTANT URLS
-
-```
-Frontend: https://restrohub.vercel.app
-Backend: https://restrohub-backend.onrender.com
-Render Dashboard: https://render.com/dashboard
-Vercel Dashboard: https://vercel.com/dashboard
-GitHub: https://github.com/Sujalpatne05/hotel
-```
-
----
-
-## TEST CREDENTIALS
-
-```
-SuperAdmin:
-  Email: superadmin@restrohub.local
-  Password: super123
-
-Admin:
-  Email: admin@example.com
-  Password: admin123
-```
+### Slow performance
+1. Upgrade from free tier
+2. Enable caching in Vercel
+3. Optimize database queries
+4. Use CDN for static assets
 
 ---
 
 ## NEXT STEPS
 
-1. ✅ Deploy backend on Render
-2. ✅ Deploy frontend on Vercel
-3. ✅ Test everything works
-4. ⏳ Monitor logs for errors
-5. ⏳ Phase 3: Add backend permission checks
-6. ⏳ Phase 4: Add advanced frontend features
+1. ✅ Deploy frontend to Vercel
+2. ✅ Deploy backend to Render
+3. ✅ Connect frontend to backend
+4. ✅ Test all features
+5. ⏭️ Set up custom domain (optional)
+6. ⏭️ Set up MongoDB database (recommended)
+7. ⏭️ Configure monitoring and alerts
+8. ⏭️ Set up automated backups
 
 ---
 
-## MONITORING
+## SUPPORT
 
-### Check Backend Logs
-1. Go to https://render.com/dashboard
-2. Click on `restrohub-backend`
-3. Click "Logs" tab
-4. View real-time logs
-
-### Check Frontend Logs
-1. Go to https://vercel.com/dashboard
-2. Click on `restrohub` project
-3. Click on latest deployment
-4. Click "Logs" tab
-
----
-
-## QUICK REFERENCE
-
-| Task | Time | Steps |
-|------|------|-------|
-| Deploy Backend | 5 min | Render → New → Web Service → Configure → Deploy |
-| Deploy Frontend | 5 min | Vercel → Add Project → Configure → Deploy |
-| Update CORS | 2 min | Render → Settings → Update FRONTEND_URL |
-| Test | 5 min | Visit URLs → Login → Create Restaurant → Check Network |
-| **Total** | **17 min** | **All steps above** |
-
----
-
-## COMMON ISSUES & FIXES
-
-| Issue | Fix |
-|-------|-----|
-| CORS error | Update `FRONTEND_URL` on Render |
-| Backend timeout | Upgrade to Starter plan on Render |
-| Build fails | Check build logs, try locally |
-| Login fails | Check credentials, check console errors |
-| Images missing | Ensure in `public/` folder, committed to git |
-
----
-
-## AFTER DEPLOYMENT
-
-- [ ] Monitor error logs daily
-- [ ] Check performance metrics
-- [ ] Respond to user feedback
-- [ ] Plan Phase 3 implementation
-- [ ] Set up automated backups
-- [ ] Configure monitoring alerts
-
----
-
-**Deployment Date**: _______________  
-**Deployed By**: _______________  
-**Status**: ✅ Live
+- Vercel Support: https://vercel.com/support
+- Render Support: https://render.com/support
+- MongoDB Support: https://www.mongodb.com/support
 
