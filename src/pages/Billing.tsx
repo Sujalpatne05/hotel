@@ -333,43 +333,43 @@ const Billing: React.FC = () => {
 		<DashboardLayout>
 			<div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-orange-100 flex flex-col justify-between">
 				{/* Header */}
-				<div className="py-6 px-2 md:px-0 max-w-6xl mx-auto w-full">
-					<div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+				<div className="py-4 px-3 sm:py-6 sm:px-4 md:px-0 max-w-6xl mx-auto w-full">
+					<div className="flex flex-col gap-3 mb-6">
 						<div>
-							<h1 className="text-3xl font-bold text-orange-700 flex items-center gap-2 mb-1">
-								<ShoppingCart className="inline-block text-orange-500" /> POS Billing
+							<h1 className="text-2xl sm:text-3xl font-bold text-orange-700 flex items-center gap-2 mb-1">
+								<ShoppingCart className="inline-block text-orange-500 flex-shrink-0" size={24} /> POS Billing
 							</h1>
-							<div className="text-muted-foreground text-sm">Welcome to RestroHub! Please select items and complete the order below.</div>
+							<div className="text-muted-foreground text-xs sm:text-sm">Welcome to RestroHub! Please select items and complete the order below.</div>
 						</div>
-						<div className="flex items-center gap-4">
-							<span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-semibold">Restaurant: pk cafe</span>
-							<span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-semibold">KDS <Monitor className="inline-block ml-1" size={16} /></span>
+						<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+							<span className="bg-orange-100 text-orange-700 px-2 sm:px-3 py-1 rounded-full font-semibold text-xs sm:text-sm truncate">Restaurant: pk cafe</span>
+							<span className="bg-orange-100 text-orange-700 px-2 sm:px-3 py-1 rounded-full font-semibold text-xs sm:text-sm flex items-center gap-1 w-fit">KDS <Monitor className="inline-block flex-shrink-0" size={14} /></span>
 						</div>
 					</div>
 
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+					<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
 						{/* Menu Section */}
-						<Card className="md:col-span-2 bg-white/90 shadow-lg">
-							<CardHeader>
-								<CardTitle className="text-xl flex items-center gap-2">
-									<UtensilsCrossed className="text-orange-500" /> Menu
+						<Card className="lg:col-span-2 bg-white/90 shadow-lg">
+							<CardHeader className="p-3 sm:p-6">
+								<CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+									<UtensilsCrossed className="text-orange-500 flex-shrink-0" /> Menu
 								</CardTitle>
 								<Tabs value={orderType} onValueChange={v => setOrderType(v as typeof orderType)}>
-									<TabsList className="mt-2">
+									<TabsList className="mt-2 w-full grid grid-cols-3">
 										{ORDER_TYPES.map(type => (
-											<TabsTrigger key={type} value={type} className="capitalize">
+											<TabsTrigger key={type} value={type} className="capitalize text-xs sm:text-sm">
 												{type.replace("-", " ")}
 											</TabsTrigger>
 										))}
 									</TabsList>
 								</Tabs>
 								{orderType === "dine-in" && (
-									<div className="my-6">
+									<div className="my-4 sm:my-6">
 										<div className="border-t border-orange-100 mb-4"></div>
-										<label className="block mb-2 text-base font-semibold text-orange-700">Table</label>
+										<label className="block mb-2 text-sm sm:text-base font-semibold text-orange-700">Table</label>
 										<div className="flex gap-2 items-center">
 													<select
-														className="border rounded px-3 py-2 bg-orange-50 focus:border-orange-400 focus:ring-2 focus:ring-orange-200 transition-all"
+														className="border rounded px-2 sm:px-3 py-2 bg-orange-50 focus:border-orange-400 focus:ring-2 focus:ring-orange-200 transition-all text-sm w-full"
 														value={selectedTable ?? ""}
 														onChange={e => setSelectedTable(Number(e.target.value))}
 														disabled={loadingTables}
@@ -400,28 +400,28 @@ const Billing: React.FC = () => {
 									</div>
 								)}
 								{/* Search Menu */}
-								<div className="flex flex-col md:flex-row md:items-center md:justify-end gap-2 mt-2 mb-4">
+								<div className="flex flex-col gap-2 mt-2 mb-4">
 									<Input
-										className="w-full"
+										className="w-full text-sm"
 										placeholder="Search menu..."
 										value={menuSearch}
 										onChange={e => setMenuSearch(e.target.value)}
 									/>
 								</div>
 							</CardHeader>
-							<CardContent>
-								<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+							<CardContent className="p-3 sm:p-6">
+								<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-2 sm:gap-4">
 									{loadingMenu ? (
-										<div className="col-span-full text-center text-muted-foreground py-8">Loading menu...</div>
+										<div className="col-span-full text-center text-muted-foreground py-8 text-sm">Loading menu...</div>
 									) : filteredMenu.length === 0 ? (
-										<div className="col-span-full text-center text-muted-foreground py-8">No items found.</div>
+										<div className="col-span-full text-center text-muted-foreground py-8 text-sm">No items found.</div>
 									) : (
 										filteredMenu.map(item => (
-											<Card key={item.id} className="p-3 flex flex-col items-center bg-orange-50/80 border-orange-100 shadow-sm hover:shadow-md transition-all">
-												<div className="mb-2 text-3xl"><UtensilsCrossed className="text-orange-500" /></div>
-												<span className="font-semibold text-base mb-1">{item.name}</span>
-												<Badge className="mb-2 bg-orange-500/90 text-white">₹{item.price}</Badge>
-												<Button size="sm" onClick={() => addItem(item)} variant="outline" disabled={!item.available}>Add</Button>
+											<Card key={item.id} className="p-2 sm:p-3 flex flex-col items-center bg-orange-50/80 border-orange-100 shadow-sm hover:shadow-md transition-all">
+												<div className="mb-2 text-2xl sm:text-3xl"><UtensilsCrossed className="text-orange-500" /></div>
+												<span className="font-semibold text-xs sm:text-base mb-1 text-center line-clamp-2">{item.name}</span>
+												<Badge className="mb-2 bg-orange-500/90 text-white text-xs">₹{item.price}</Badge>
+												<Button size="sm" onClick={() => addItem(item)} variant="outline" disabled={!item.available} className="text-xs">Add</Button>
 												{!item.available && <span className="text-xs text-red-500 mt-1">Unavailable</span>}
 											</Card>
 										))
@@ -432,49 +432,49 @@ const Billing: React.FC = () => {
 
 						{/* Order Summary Section */}
 						<Card className="bg-white/90 shadow-lg">
-							<CardHeader>
-								<CardTitle className="text-xl flex items-center gap-2">
-									<ShoppingCart className="text-orange-500" /> Order Summary
-									{existingOrder && <Badge className="bg-blue-500">Editing Order #{existingOrder.id}</Badge>}
+							<CardHeader className="p-3 sm:p-6">
+								<CardTitle className="text-lg sm:text-xl flex items-center gap-2 flex-wrap">
+									<ShoppingCart className="text-orange-500 flex-shrink-0" /> Order Summary
+									{existingOrder && <Badge className="bg-blue-500 text-xs">Editing Order #{existingOrder.id}</Badge>}
 								</CardTitle>
 							</CardHeader>
-							<CardContent>
+							<CardContent className="p-3 sm:p-6">
 								{orderItems.length === 0 ? (
-									<div className="text-muted-foreground mb-4">No items selected.</div>
+									<div className="text-muted-foreground mb-4 text-sm">No items selected.</div>
 								) : (
-									<ul className="mb-4">
+									<ul className="mb-4 max-h-48 overflow-y-auto">
 										{orderItems.map(item => (
-											<li key={item.id} className="flex justify-between items-center mb-2 bg-orange-50 rounded px-2 py-1 shadow-sm">
-												<span className="font-medium">{item.name} <span className="text-xs text-muted-foreground">x {item.qty}</span></span>
-												<span className="font-semibold">₹{item.price * item.qty}</span>
-												<Button size="sm" variant="ghost" onClick={() => removeItem(item.id)}>-</Button>
+											<li key={item.id} className="flex justify-between items-center mb-2 bg-orange-50 rounded px-2 py-1 shadow-sm text-sm">
+												<span className="font-medium truncate">{item.name} <span className="text-xs text-muted-foreground">x {item.qty}</span></span>
+												<span className="font-semibold flex-shrink-0 ml-2">₹{item.price * item.qty}</span>
+												<Button size="sm" variant="ghost" onClick={() => removeItem(item.id)} className="h-6 w-6 p-0 ml-1">-</Button>
 											</li>
 										))}
 									</ul>
 								)}
-								<div className="border-t pt-2 flex flex-col gap-1 mb-4">
+								<div className="border-t pt-2 flex flex-col gap-1 mb-4 text-sm">
 									<div className="flex justify-between"><span>Subtotal</span><span>₹{subtotal}</span></div>
 									<div className="flex justify-between"><span>Tax (5%)</span><span>₹{tax}</span></div>
-									<div className="flex justify-between font-bold text-lg text-orange-700"><span>Total</span><span>₹{total}</span></div>
+									<div className="flex justify-between font-bold text-base sm:text-lg text-orange-700"><span>Total</span><span>₹{total}</span></div>
 								</div>
 								{(orderType === "take-away" || orderType === "delivery") && (
 									<div className="mb-4">
-										<div className="font-medium mb-1">Customer Details</div>
+										<div className="font-medium mb-2 text-sm">Customer Details</div>
 										<Input
-											className="mb-2"
+											className="mb-2 text-sm"
 											placeholder="Name"
 											value={customer.name}
 											onChange={e => setCustomer({ ...customer, name: e.target.value })}
 										/>
 										<Input
-											className="mb-2"
+											className="mb-2 text-sm"
 											placeholder="Phone"
 											value={customer.phone}
 											onChange={e => setCustomer({ ...customer, phone: e.target.value })}
 										/>
 										{orderType === "delivery" && (
 											<Input
-												className="mb-2"
+												className="mb-2 text-sm"
 												placeholder="Address"
 												value={customer.address}
 												onChange={e => setCustomer({ ...customer, address: e.target.value })}
@@ -484,14 +484,15 @@ const Billing: React.FC = () => {
 								)}
 								{(orderType === "take-away" || orderType === "delivery") && (
 									<div className="mb-4">
-										<div className="font-medium mb-1">Payment Method</div>
-										<div className="flex gap-2">
+										<div className="font-medium mb-2 text-sm">Payment Method</div>
+										<div className="flex gap-2 flex-wrap">
 											{PAYMENT_METHODS.map(method => (
 												<Button
 													key={method}
 													size="sm"
 													variant={paymentMethod === method ? "default" : "outline"}
 													onClick={() => setPaymentMethod(method)}
+													className="text-xs flex-1 min-w-fit"
 												>
 													{method.toUpperCase()}
 												</Button>
@@ -501,12 +502,13 @@ const Billing: React.FC = () => {
 								)}
 								{orderType === "delivery" && (
 									<div className="mb-4">
-										<div className="font-medium mb-1">Delivery Partner</div>
-										<div className="flex gap-2">
+										<div className="font-medium mb-2 text-sm">Delivery Partner</div>
+										<div className="flex gap-2 flex-wrap">
 											<Button
 												size="sm"
 												variant={deliveryPartner === "in-house" ? "default" : "outline"}
 												onClick={() => setDeliveryPartner("in-house")}
+												className="text-xs flex-1 min-w-fit"
 											>
 												In-House
 											</Button>
@@ -514,6 +516,7 @@ const Billing: React.FC = () => {
 												size="sm"
 												variant={deliveryPartner === "swiggy" ? "default" : "outline"}
 												onClick={() => setDeliveryPartner("swiggy")}
+												className="text-xs flex-1 min-w-fit"
 											>
 												Swiggy
 											</Button>
@@ -521,13 +524,14 @@ const Billing: React.FC = () => {
 												size="sm"
 												variant={deliveryPartner === "zomato" ? "default" : "outline"}
 												onClick={() => setDeliveryPartner("zomato")}
+												className="text-xs flex-1 min-w-fit"
 											>
 												Zomato
 											</Button>
 										</div>
 									</div>
 								)}
-								<Button className="w-full bg-orange-500 hover:bg-orange-600" onClick={handlePlaceOrder} disabled={orderItems.length === 0}>
+								<Button className="w-full bg-orange-500 hover:bg-orange-600 text-sm" onClick={handlePlaceOrder} disabled={orderItems.length === 0}>
 									{existingOrder ? "Update Order" : "Place Order"}
 								</Button>
 							</CardContent>
@@ -536,54 +540,54 @@ const Billing: React.FC = () => {
 				</div>
 
 				{/* Recent Orders Section */}
-				<div className="max-w-6xl mx-auto w-full mt-8 mb-4">
+				<div className="max-w-6xl mx-auto w-full mt-6 sm:mt-8 mb-4 px-3 sm:px-4 md:px-0">
 					<Card className="bg-white/90 shadow-lg">
-						<CardHeader>
-							<CardTitle className="text-lg flex items-center gap-2">
-								<ShoppingCart className="text-orange-500" size={20} /> Recent Orders
+						<CardHeader className="p-3 sm:p-6">
+							<CardTitle className="text-base sm:text-lg flex items-center gap-2">
+								<ShoppingCart className="text-orange-500 flex-shrink-0" size={20} /> Recent Orders
 							</CardTitle>
 						</CardHeader>
-						<CardContent>
+						<CardContent className="p-3 sm:p-6">
 							{loadingRecentOrders ? (
-								<div className="text-center py-4 text-muted-foreground">Loading recent orders...</div>
+								<div className="text-center py-4 text-muted-foreground text-sm">Loading recent orders...</div>
 							) : recentOrders.length === 0 ? (
-								<div className="text-center py-4 text-muted-foreground">No recent orders</div>
+								<div className="text-center py-4 text-muted-foreground text-sm">No recent orders</div>
 							) : (
-								<div className="overflow-x-auto">
-									<table className="w-full text-sm">
+								<div className="overflow-x-auto -mx-3 sm:-mx-6 px-3 sm:px-6">
+									<table className="w-full text-xs sm:text-sm">
 										<thead>
 											<tr className="border-b bg-orange-50">
-												<th className="text-left py-2 px-3 font-semibold">Order ID</th>
-												<th className="text-left py-2 px-3 font-semibold">Type</th>
-												<th className="text-left py-2 px-3 font-semibold">Items</th>
-												<th className="text-right py-2 px-3 font-semibold">Amount</th>
-												<th className="text-center py-2 px-3 font-semibold">Status</th>
+												<th className="text-left py-2 px-2 sm:px-3 font-semibold">Order ID</th>
+												<th className="text-left py-2 px-2 sm:px-3 font-semibold">Type</th>
+												<th className="text-left py-2 px-2 sm:px-3 font-semibold hidden sm:table-cell">Items</th>
+												<th className="text-right py-2 px-2 sm:px-3 font-semibold">Amount</th>
+												<th className="text-center py-2 px-2 sm:px-3 font-semibold">Status</th>
 											</tr>
 										</thead>
 										<tbody>
 											{recentOrders.map((order) => (
 												<tr key={order.id} className="border-b hover:bg-orange-50/50">
-													<td className="py-2 px-3 font-medium text-orange-600">ORD-{order.id}</td>
-													<td className="py-2 px-3">
+													<td className="py-2 px-2 sm:px-3 font-medium text-orange-600">ORD-{order.id}</td>
+													<td className="py-2 px-2 sm:px-3">
 														<Badge className={
-															order.orderType === "dine-in" ? "bg-blue-100 text-blue-800" :
-															order.orderType === "take-away" ? "bg-orange-100 text-orange-800" :
-															"bg-purple-100 text-purple-800"
+															order.orderType === "dine-in" ? "bg-blue-100 text-blue-800 text-xs" :
+															order.orderType === "take-away" ? "bg-orange-100 text-orange-800 text-xs" :
+															"bg-purple-100 text-purple-800 text-xs"
 														}>
 															{order.orderType === "dine-in" ? "Dine-in" : order.orderType === "take-away" ? "Takeaway" : "Delivery"}
 														</Badge>
 													</td>
-													<td className="py-2 px-3 text-muted-foreground truncate max-w-xs">
+													<td className="py-2 px-2 sm:px-3 text-muted-foreground truncate max-w-xs hidden sm:table-cell text-xs">
 														{Array.isArray(order.items) ? order.items.join(", ") : "N/A"}
 													</td>
-													<td className="py-2 px-3 text-right font-semibold">₹{order.total}</td>
-													<td className="py-2 px-3 text-center">
+													<td className="py-2 px-2 sm:px-3 text-right font-semibold">₹{order.total}</td>
+													<td className="py-2 px-2 sm:px-3 text-center">
 														<Badge className={
-															order.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-															order.status === "preparing" ? "bg-blue-100 text-blue-800" :
-															order.status === "ready" ? "bg-green-100 text-green-800" :
-															order.status === "completed" ? "bg-green-600 text-white" :
-															"bg-gray-100 text-gray-800"
+															order.status === "pending" ? "bg-yellow-100 text-yellow-800 text-xs" :
+															order.status === "preparing" ? "bg-blue-100 text-blue-800 text-xs" :
+															order.status === "ready" ? "bg-green-100 text-green-800 text-xs" :
+															order.status === "completed" ? "bg-green-600 text-white text-xs" :
+															"bg-gray-100 text-gray-800 text-xs"
 														}>
 															{order.status}
 														</Badge>
@@ -599,7 +603,7 @@ const Billing: React.FC = () => {
 				</div>
 
 				{/* Footer */}
-				<footer className="w-full text-center py-4 text-muted-foreground text-xs bg-transparent mt-8">
+				<footer className="w-full text-center py-3 sm:py-4 text-muted-foreground text-xs bg-transparent mt-6 sm:mt-8 px-3">
 					&copy; {new Date().getFullYear()} RestroHub POS &mdash; Powered by pk cafe
 				</footer>
 			</div>

@@ -300,190 +300,199 @@ export default function DeliveryManagement() {
   return (
     <DashboardLayout>
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="flex flex-row items-center gap-4 p-4 bg-blue-50">
-          <FaShippingFast className="text-2xl text-blue-600" />
-          <div>
-            <div className="text-lg font-bold">{summary.total}</div>
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-6">
+        <Card className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 bg-blue-50">
+          <FaShippingFast className="text-xl sm:text-2xl text-blue-600 flex-shrink-0" />
+          <div className="min-w-0">
+            <div className="text-base sm:text-lg font-bold">{summary.total}</div>
             <div className="text-xs text-gray-500">Total Deliveries</div>
           </div>
         </Card>
-        <Card className="flex flex-row items-center gap-4 p-4 bg-green-50">
-          <FaCheckCircle className="text-2xl text-green-600" />
-          <div>
-            <div className="text-lg font-bold">{summary.delivered}</div>
+        <Card className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 bg-green-50">
+          <FaCheckCircle className="text-xl sm:text-2xl text-green-600 flex-shrink-0" />
+          <div className="min-w-0">
+            <div className="text-base sm:text-lg font-bold">{summary.delivered}</div>
             <div className="text-xs text-gray-500">Delivered</div>
           </div>
         </Card>
-        <Card className="flex flex-row items-center gap-4 p-4 bg-yellow-50">
-          <FaClock className="text-2xl text-yellow-600" />
-          <div>
-            <div className="text-lg font-bold">{summary.pending}</div>
+        <Card className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 bg-yellow-50">
+          <FaClock className="text-xl sm:text-2xl text-yellow-600 flex-shrink-0" />
+          <div className="min-w-0">
+            <div className="text-base sm:text-lg font-bold">{summary.pending}</div>
             <div className="text-xs text-gray-500">Pending</div>
           </div>
         </Card>
-        <Card className="flex flex-row items-center gap-4 p-4 bg-purple-50">
-          <FaRupeeSign className="text-2xl text-purple-600" />
-          <div>
-            <div className="text-lg font-bold">₹{summary.totalAmount}</div>
+        <Card className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 sm:p-4 bg-purple-50">
+          <FaRupeeSign className="text-xl sm:text-2xl text-purple-600 flex-shrink-0" />
+          <div className="min-w-0">
+            <div className="text-base sm:text-lg font-bold">₹{summary.totalAmount}</div>
             <div className="text-xs text-gray-500">Total Revenue</div>
           </div>
         </Card>
       </div>
+
       {/* API Key Management */}
-        {/* API Key Management */}
-        <Card className="max-w-xl">
-          <CardHeader>
-            <CardTitle>API Keys</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4">
-              <div>
-                <Label>Swiggy API Key</Label>
-                <Input 
-                  value={apiKeys.swiggy} 
-                  onChange={e => setApiKeys({...apiKeys, swiggy: e.target.value})}
-                  placeholder="Enter Swiggy API key" 
-                />
-              </div>
-              <div>
-                <Label>Zomato API Key</Label>
-                <Input 
-                  value={apiKeys.zomato} 
-                  onChange={e => setApiKeys({...apiKeys, zomato: e.target.value})}
-                  placeholder="Enter Zomato API key" 
-                />
-              </div>
-              <Button type="button" onClick={handleSaveApiKeys} disabled={apiKeySaving}>
-                {apiKeySaving ? "Saving..." : "Update Keys"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Delivery List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Deliveries</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4 flex gap-2">
-              <Input
-                placeholder="Search by customer or order number..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="max-w-xs"
+      <Card className="mb-6 max-w-full sm:max-w-xl">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">API Keys</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <form className="space-y-3 sm:space-y-4">
+            <div>
+              <Label className="text-sm">Swiggy API Key</Label>
+              <Input 
+                value={apiKeys.swiggy} 
+                onChange={e => setApiKeys({...apiKeys, swiggy: e.target.value})}
+                placeholder="Enter Swiggy API key"
+                className="text-sm mt-1"
               />
-              <Button onClick={() => setEditingId(0)}>
-                <FaMotorcycle className="mr-2" /> Add Delivery
-              </Button>
             </div>
-            <div className="overflow-x-auto rounded-lg border shadow-sm">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="p-3 border text-left whitespace-nowrap">Order #</th>
-                    <th className="p-3 border text-left whitespace-nowrap">Customer</th>
-                    <th className="p-3 border text-left whitespace-nowrap">Phone</th>
-                    <th className="p-3 border text-left whitespace-nowrap">Partner</th>
-                    <th className="p-3 border text-left whitespace-nowrap">Amount</th>
-                    <th className="p-3 border text-left whitespace-nowrap">Driver</th>
-                    <th className="p-3 border text-left whitespace-nowrap">Status</th>
-                    <th className="p-3 border text-left whitespace-nowrap">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {deliveries.filter(d =>
-                    d.customer_name.toLowerCase().includes(search.toLowerCase()) ||
-                    d.order_number.toLowerCase().includes(search.toLowerCase())
-                  ).map(delivery => (
-                    <tr key={delivery.id} className="hover:bg-blue-50 transition border-b">
-                      <td className="p-3 border font-semibold whitespace-nowrap">{delivery.order_number}</td>
-                      <td className="p-3 border flex items-center gap-2"><FaUser className="text-gray-400 flex-shrink-0" /><span className="truncate">{delivery.customer_name}</span></td>
-                      <td className="p-3 border whitespace-nowrap">{delivery.phone}</td>
-                      <td className="p-3 border">
-                        <Badge variant={delivery.partner === "swiggy" ? "secondary" : delivery.partner === "zomato" ? "destructive" : "default"}>
-                          {delivery.partner.charAt(0).toUpperCase() + delivery.partner.slice(1)}
-                        </Badge>
-                      </td>
-                      <td className="p-3 border font-semibold text-purple-700 flex items-center gap-1 whitespace-nowrap"><FaRupeeSign className="flex-shrink-0" />{delivery.amount}</td>
-                      <td className="p-3 border whitespace-nowrap">{delivery.driver}</td>
-                      <td className="p-3 border">
-                        <Badge variant={delivery.status === "delivered" ? "success" : delivery.status === "dispatched" ? "secondary" : "default"}>
-                          {delivery.status.charAt(0).toUpperCase() + delivery.status.slice(1)}
-                        </Badge>
-                      </td>
-                      <td className="p-3 border">
-                        <div className="flex gap-2 flex-wrap">
-                          <Button size="sm" variant="outline" onClick={() => {
-                            setNewDelivery({
-                              id: delivery.id,
-                              order_number: delivery.order_number,
-                              customer_name: delivery.customer_name,
-                              phone: delivery.phone,
-                              address: delivery.address,
-                              partner: delivery.partner,
-                              amount: String(delivery.amount),
-                              driver: delivery.driver,
-                              status: delivery.status,
-                              createdAt: delivery.createdAt || new Date().toISOString(),
-                            });
-                            setEditingId(delivery.id);
-                          }}>
-                            <FaEdit className="mr-1" /> Edit
-                          </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleDeleteDelivery(delivery.id)}>
-                            <FaTrash className="mr-1" /> Delete
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div>
+              <Label className="text-sm">Zomato API Key</Label>
+              <Input 
+                value={apiKeys.zomato} 
+                onChange={e => setApiKeys({...apiKeys, zomato: e.target.value})}
+                placeholder="Enter Zomato API key"
+                className="text-sm mt-1"
+              />
             </div>
-          </CardContent>
-        </Card>
+            <Button type="button" onClick={handleSaveApiKeys} disabled={apiKeySaving} className="w-full sm:w-auto text-sm">
+              {apiKeySaving ? "Saving..." : "Update Keys"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-        {/* Add/Edit Delivery Modal (simple inline form for now) */}
-        {editingId !== null && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg relative border">
-              <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl" onClick={() => setEditingId(null)} aria-label="Close">&times;</button>
-              <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <FaMotorcycle className="text-blue-500" /> {editingId === 0 ? "Add Delivery" : "Edit Delivery"}
-              </h2>
-              <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); handleSaveDelivery(); }}>
-                <Input placeholder="Order Number" value={newDelivery.order_number} onChange={e => setNewDelivery(d => ({ ...d, order_number: e.target.value }))} required />
-                <Input placeholder="Customer Name" value={newDelivery.customer_name} onChange={e => setNewDelivery(d => ({ ...d, customer_name: e.target.value }))} required />
-                <Input placeholder="Phone" value={newDelivery.phone} onChange={e => setNewDelivery(d => ({ ...d, phone: e.target.value }))} />
-                <Input placeholder="Address" value={newDelivery.address} onChange={e => setNewDelivery(d => ({ ...d, address: e.target.value }))} required />
-                <Select value={newDelivery.partner} onValueChange={val => setNewDelivery(d => ({ ...d, partner: val as Delivery["partner"] }))}>
-                  <SelectTrigger><SelectValue placeholder="Partner" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="in-house">In-House</SelectItem>
-                    <SelectItem value="swiggy">Swiggy</SelectItem>
-                    <SelectItem value="zomato">Zomato</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input placeholder="Amount" type="number" value={newDelivery.amount} onChange={e => setNewDelivery(d => ({ ...d, amount: e.target.value }))} />
-                <Input placeholder="Driver" value={newDelivery.driver} onChange={e => setNewDelivery(d => ({ ...d, driver: e.target.value }))} />
-                <Select value={newDelivery.status} onValueChange={val => setNewDelivery(d => ({ ...d, status: val as Delivery["status"] }))}>
-                  <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="dispatched">Dispatched</SelectItem>
-                    <SelectItem value="delivered">Delivered</SelectItem>
-                  </SelectContent>
-                </Select>
-                <div className="flex gap-3 mt-4">
-                  <Button type="button" onClick={() => setEditingId(null)} variant="secondary">Cancel</Button>
-                  <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
-                </div>
-              </form>
-            </div>
+      {/* Delivery List */}
+      <Card>
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-lg sm:text-xl">Deliveries</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
+          <div className="mb-4 flex flex-col sm:flex-row gap-2">
+            <Input
+              placeholder="Search by customer or order..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="text-sm flex-1"
+            />
+            <Button onClick={() => setEditingId(0)} className="text-sm w-full sm:w-auto">
+              <FaMotorcycle className="mr-2 flex-shrink-0" /> Add Delivery
+            </Button>
           </div>
-        )}
+          <div className="overflow-x-auto rounded-lg border shadow-sm -mx-4 sm:mx-0">
+            <table className="w-full text-xs sm:text-sm">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="p-2 sm:p-3 border text-left whitespace-nowrap">Order #</th>
+                  <th className="p-2 sm:p-3 border text-left whitespace-nowrap hidden sm:table-cell">Customer</th>
+                  <th className="p-2 sm:p-3 border text-left whitespace-nowrap hidden md:table-cell">Phone</th>
+                  <th className="p-2 sm:p-3 border text-left whitespace-nowrap">Partner</th>
+                  <th className="p-2 sm:p-3 border text-left whitespace-nowrap">Amount</th>
+                  <th className="p-2 sm:p-3 border text-left whitespace-nowrap hidden lg:table-cell">Driver</th>
+                  <th className="p-2 sm:p-3 border text-left whitespace-nowrap">Status</th>
+                  <th className="p-2 sm:p-3 border text-left whitespace-nowrap">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {deliveries.filter(d =>
+                  d.customer_name.toLowerCase().includes(search.toLowerCase()) ||
+                  d.order_number.toLowerCase().includes(search.toLowerCase())
+                ).map(delivery => (
+                  <tr key={delivery.id} className="hover:bg-blue-50 transition border-b">
+                    <td className="p-2 sm:p-3 border font-semibold whitespace-nowrap text-xs sm:text-sm">{delivery.order_number}</td>
+                    <td className="p-2 sm:p-3 border hidden sm:table-cell">
+                      <div className="flex items-center gap-1">
+                        <FaUser className="text-gray-400 flex-shrink-0 text-xs" />
+                        <span className="truncate text-xs sm:text-sm">{delivery.customer_name}</span>
+                      </div>
+                    </td>
+                    <td className="p-2 sm:p-3 border whitespace-nowrap hidden md:table-cell text-xs sm:text-sm">{delivery.phone}</td>
+                    <td className="p-2 sm:p-3 border">
+                      <Badge variant={delivery.partner === "swiggy" ? "secondary" : delivery.partner === "zomato" ? "destructive" : "default"} className="text-xs">
+                        {delivery.partner.charAt(0).toUpperCase() + delivery.partner.slice(1)}
+                      </Badge>
+                    </td>
+                    <td className="p-2 sm:p-3 border font-semibold text-purple-700 flex items-center gap-1 whitespace-nowrap text-xs sm:text-sm">
+                      <FaRupeeSign className="flex-shrink-0 text-xs" />{delivery.amount}
+                    </td>
+                    <td className="p-2 sm:p-3 border whitespace-nowrap hidden lg:table-cell text-xs sm:text-sm">{delivery.driver}</td>
+                    <td className="p-2 sm:p-3 border">
+                      <Badge variant={delivery.status === "delivered" ? "success" : delivery.status === "dispatched" ? "secondary" : "default"} className="text-xs">
+                        {delivery.status.charAt(0).toUpperCase() + delivery.status.slice(1)}
+                      </Badge>
+                    </td>
+                    <td className="p-2 sm:p-3 border">
+                      <div className="flex gap-1 flex-wrap">
+                        <Button size="sm" variant="outline" onClick={() => {
+                          setNewDelivery({
+                            id: delivery.id,
+                            order_number: delivery.order_number,
+                            customer_name: delivery.customer_name,
+                            phone: delivery.phone,
+                            address: delivery.address,
+                            partner: delivery.partner,
+                            amount: String(delivery.amount),
+                            driver: delivery.driver,
+                            status: delivery.status,
+                            createdAt: delivery.createdAt || new Date().toISOString(),
+                          });
+                          setEditingId(delivery.id);
+                        }} className="text-xs px-2 py-1">
+                          <FaEdit className="mr-1 flex-shrink-0" /> Edit
+                        </Button>
+                        <Button size="sm" variant="destructive" onClick={() => handleDeleteDelivery(delivery.id)} className="text-xs px-2 py-1">
+                          <FaTrash className="mr-1 flex-shrink-0" /> Delete
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add/Edit Delivery Modal */}
+      {editingId !== null && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-4 sm:p-8 w-full max-w-lg relative border max-h-[90vh] overflow-y-auto">
+            <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl" onClick={() => setEditingId(null)} aria-label="Close">&times;</button>
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 flex items-center gap-2">
+              <FaMotorcycle className="text-blue-500 flex-shrink-0" /> {editingId === 0 ? "Add Delivery" : "Edit Delivery"}
+            </h2>
+            <form className="flex flex-col gap-3 sm:gap-4" onSubmit={(e) => { e.preventDefault(); handleSaveDelivery(); }}>
+              <Input placeholder="Order Number" value={newDelivery.order_number} onChange={e => setNewDelivery(d => ({ ...d, order_number: e.target.value }))} required className="text-sm" />
+              <Input placeholder="Customer Name" value={newDelivery.customer_name} onChange={e => setNewDelivery(d => ({ ...d, customer_name: e.target.value }))} required className="text-sm" />
+              <Input placeholder="Phone" value={newDelivery.phone} onChange={e => setNewDelivery(d => ({ ...d, phone: e.target.value }))} className="text-sm" />
+              <Input placeholder="Address" value={newDelivery.address} onChange={e => setNewDelivery(d => ({ ...d, address: e.target.value }))} required className="text-sm" />
+              <Select value={newDelivery.partner} onValueChange={val => setNewDelivery(d => ({ ...d, partner: val as Delivery["partner"] }))}>
+                <SelectTrigger className="text-sm"><SelectValue placeholder="Partner" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in-house">In-House</SelectItem>
+                  <SelectItem value="swiggy">Swiggy</SelectItem>
+                  <SelectItem value="zomato">Zomato</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input placeholder="Amount" type="number" value={newDelivery.amount} onChange={e => setNewDelivery(d => ({ ...d, amount: e.target.value }))} className="text-sm" />
+              <Input placeholder="Driver" value={newDelivery.driver} onChange={e => setNewDelivery(d => ({ ...d, driver: e.target.value }))} className="text-sm" />
+              <Select value={newDelivery.status} onValueChange={val => setNewDelivery(d => ({ ...d, status: val as Delivery["status"] }))}>
+                <SelectTrigger className="text-sm"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="dispatched">Dispatched</SelectItem>
+                  <SelectItem value="delivered">Delivered</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2 sm:gap-3 mt-4">
+                <Button type="button" onClick={() => setEditingId(null)} variant="secondary" className="flex-1 text-sm">Cancel</Button>
+                <Button type="submit" disabled={saving} className="flex-1 text-sm">{saving ? "Saving..." : "Save"}</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }

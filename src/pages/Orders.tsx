@@ -160,21 +160,21 @@ export default function Orders() {
     const list = filter === "all" ? orders : orders.filter((order) => order.status === filter);
 
     if (list.length === 0) {
-      return <p className="text-sm text-muted-foreground">No orders found.</p>;
+      return <p className="text-xs sm:text-sm text-muted-foreground">No orders found.</p>;
     }
 
     return (
-      <div className="grid gap-4">
+      <div className="grid gap-3 sm:gap-4">
         {list.map((order) => (
           <Card key={order.id} className="shadow-card">
-            <CardContent className="p-4">
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className="font-bold">ORD-{order.id}</span>
-                      <Badge className={statusStyle[order.status]}>{order.status}</Badge>
-                      <Badge className={getOrderTypeColor(order.orderType)}>
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex flex-col gap-2 sm:gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-sm sm:text-base">ORD-{order.id}</span>
+                      <Badge className={`${statusStyle[order.status]} text-xs`}>{order.status}</Badge>
+                      <Badge className={`${getOrderTypeColor(order.orderType)} text-xs`}>
                         {getOrderTypeLabel(order.orderType)}
                       </Badge>
                     </div>
@@ -182,19 +182,19 @@ export default function Orders() {
                     {order.tableNumber !== null && (
                       <p className="text-xs text-muted-foreground">Table {order.tableNumber}</p>
                     )}
-                    <p className="text-sm mt-2">{order.items.join(", ")}</p>
+                    <p className="text-xs sm:text-sm mt-2 break-words">{order.items.join(", ")}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold">Rs. {order.total.toLocaleString("en-IN")}</p>
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-bold text-sm sm:text-base">Rs. {order.total.toLocaleString("en-IN")}</p>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-4 pt-2 border-t text-xs">
-                  <div>
-                    <span className="text-muted-foreground">Payment Method: </span>
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 pt-2 border-t text-xs">
+                  <div className="min-w-0">
+                    <span className="text-muted-foreground">Payment: </span>
                     <span className="font-semibold">{getPaymentMethodLabel(order.paymentMethod)}</span>
                   </div>
-                  <div>
-                    <span className="text-muted-foreground">Payment Status: </span>
+                  <div className="min-w-0">
+                    <span className="text-muted-foreground">Status: </span>
                     <span className={`font-semibold ${order.paymentStatus === "paid" ? "text-green-600" : "text-orange-600"}`}>
                       {order.paymentStatus === "paid" ? "Paid" : "Unpaid"}
                     </span>
@@ -210,38 +210,38 @@ export default function Orders() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
         <div>
-          <h1 className="text-2xl font-bold">Orders</h1>
-          <p className="text-muted-foreground">Live order feed from billing and kitchen</p>
+          <h1 className="text-xl sm:text-2xl font-bold">Orders</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Live order feed from billing and kitchen</p>
         </div>
 
-        {error && <div className="text-sm text-red-600">{error}</div>}
+        {error && <div className="text-xs sm:text-sm text-red-600">{error}</div>}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <StatCard title="Pending" value={String(stats.pending)} icon={<ShoppingCart className="h-5 w-5" />} />
-          <StatCard title="Preparing" value={String(stats.preparing)} icon={<Clock className="h-5 w-5" />} />
-          <StatCard title="Ready" value={String(stats.ready)} icon={<CheckCircle className="h-5 w-5" />} />
-          <StatCard title="Served" value={String(stats.served)} icon={<Truck className="h-5 w-5" />} />
-          <StatCard title="Completed" value={String(stats.completed)} icon={<CheckCircle className="h-5 w-5" />} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
+          <StatCard title="Pending" value={String(stats.pending)} icon={<ShoppingCart className="h-4 sm:h-5 w-4 sm:w-5" />} />
+          <StatCard title="Preparing" value={String(stats.preparing)} icon={<Clock className="h-4 sm:h-5 w-4 sm:w-5" />} />
+          <StatCard title="Ready" value={String(stats.ready)} icon={<CheckCircle className="h-4 sm:h-5 w-4 sm:w-5" />} />
+          <StatCard title="Served" value={String(stats.served)} icon={<Truck className="h-4 sm:h-5 w-4 sm:w-5" />} />
+          <StatCard title="Completed" value={String(stats.completed)} icon={<CheckCircle className="h-4 sm:h-5 w-4 sm:w-5" />} />
         </div>
 
         <Tabs defaultValue="all">
-          <TabsList>
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="preparing">Preparing</TabsTrigger>
-            <TabsTrigger value="ready">Ready</TabsTrigger>
-            <TabsTrigger value="served">Served</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsList className="w-full grid grid-cols-3 sm:grid-cols-6 gap-1 sm:gap-0">
+            <TabsTrigger value="all" className="text-xs sm:text-sm">All</TabsTrigger>
+            <TabsTrigger value="pending" className="text-xs sm:text-sm">Pending</TabsTrigger>
+            <TabsTrigger value="preparing" className="text-xs sm:text-sm">Prep</TabsTrigger>
+            <TabsTrigger value="ready" className="text-xs sm:text-sm hidden sm:inline-flex">Ready</TabsTrigger>
+            <TabsTrigger value="served" className="text-xs sm:text-sm hidden sm:inline-flex">Served</TabsTrigger>
+            <TabsTrigger value="completed" className="text-xs sm:text-sm">Done</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all">{renderOrders("all")}</TabsContent>
-          <TabsContent value="pending">{renderOrders("pending")}</TabsContent>
-          <TabsContent value="preparing">{renderOrders("preparing")}</TabsContent>
-          <TabsContent value="ready">{renderOrders("ready")}</TabsContent>
-          <TabsContent value="served">{renderOrders("served")}</TabsContent>
-          <TabsContent value="completed">{renderOrders("completed")}</TabsContent>
+          <TabsContent value="all" className="mt-4">{renderOrders("all")}</TabsContent>
+          <TabsContent value="pending" className="mt-4">{renderOrders("pending")}</TabsContent>
+          <TabsContent value="preparing" className="mt-4">{renderOrders("preparing")}</TabsContent>
+          <TabsContent value="ready" className="mt-4">{renderOrders("ready")}</TabsContent>
+          <TabsContent value="served" className="mt-4">{renderOrders("served")}</TabsContent>
+          <TabsContent value="completed" className="mt-4">{renderOrders("completed")}</TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>

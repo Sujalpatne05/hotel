@@ -230,55 +230,55 @@ const Reports = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-4 md:p-6">
+      <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <BarChart3 className="text-orange-500" /> Reports & Analytics
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <BarChart3 className="text-orange-500 flex-shrink-0" size={24} /> Reports & Analytics
           </h1>
-          <div className="flex flex-wrap gap-2 mt-3">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 mt-2 sm:mt-3">
             <button
-              className="px-4 py-2 rounded bg-orange-500 text-white font-semibold text-sm hover:bg-orange-600 flex items-center gap-2"
+              className="px-3 sm:px-4 py-2 rounded bg-orange-500 text-white font-semibold text-xs sm:text-sm hover:bg-orange-600 flex items-center gap-2 w-full sm:w-auto justify-center"
               onClick={() => handleDownload("pdf")}
             >
-              <Download size={16} /> Download PDF
+              <Download size={14} /> Download PDF
             </button>
             <button
-              className="px-4 py-2 rounded bg-blue-500 text-white font-semibold text-sm hover:bg-blue-600 flex items-center gap-2"
+              className="px-3 sm:px-4 py-2 rounded bg-blue-500 text-white font-semibold text-xs sm:text-sm hover:bg-blue-600 flex items-center gap-2 w-full sm:w-auto justify-center"
               onClick={() => handleDownload("csv")}
             >
-              <Download size={16} /> Download CSV
+              <Download size={14} /> Download CSV
             </button>
           </div>
-          <p className="text-muted-foreground mt-2">Comprehensive analytics and performance metrics</p>
+          <p className="text-muted-foreground text-xs sm:text-sm mt-2">Comprehensive analytics and performance metrics</p>
         </div>
 
         {/* Summary Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard title="Total Revenue" value={`₹${Math.round(overview.revenue).toLocaleString("en-IN")}`} icon={<IndianRupee className="h-5 w-5" />} />
-          <StatCard title="Total Orders" value={String(overview.totalOrders)} icon={<ShoppingCart className="h-5 w-5" />} />
-          <StatCard title="Total Customers" value={String(overview.totalCustomers)} icon={<Users className="h-5 w-5" />} />
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+          <StatCard title="Total Revenue" value={`₹${Math.round(overview.revenue).toLocaleString("en-IN")}`} icon={<IndianRupee className="h-4 sm:h-5 w-4 sm:w-5" />} />
+          <StatCard title="Total Orders" value={String(overview.totalOrders)} icon={<ShoppingCart className="h-4 sm:h-5 w-4 sm:w-5" />} />
+          <StatCard title="Total Customers" value={String(overview.totalCustomers)} icon={<Users className="h-4 sm:h-5 w-4 sm:w-5" />} />
           <StatCard
             title="Avg Order Value"
             value={`₹${overview.totalOrders > 0 ? Math.round(overview.revenue / overview.totalOrders).toLocaleString("en-IN") : 0}`}
-            icon={<TrendingUp className="h-5 w-5" />}
+            icon={<TrendingUp className="h-4 sm:h-5 w-4 sm:w-5" />}
           />
         </div>
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full max-w-3xl grid-cols-5">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="items">Top Items</TabsTrigger>
-            <TabsTrigger value="breakdown">Breakdown</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
-            <TabsTrigger value="tally">Tally</TabsTrigger>
+          <TabsList className="w-full overflow-x-auto flex gap-1 sm:gap-0 bg-gray-100 p-1 rounded-lg">
+            <TabsTrigger value="overview" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Overview</TabsTrigger>
+            <TabsTrigger value="items" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Items</TabsTrigger>
+            <TabsTrigger value="breakdown" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0 hidden sm:inline-flex">Breakdown</TabsTrigger>
+            <TabsTrigger value="trends" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Trends</TabsTrigger>
+            <TabsTrigger value="tally" className="text-xs sm:text-sm whitespace-nowrap flex-shrink-0">Tally</TabsTrigger>
           </TabsList>
 
           {/* Overview Tab */}
           {activeTab === "overview" && (
-            <div className="space-y-4 mt-4">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-3 sm:space-y-4 mt-3 sm:mt-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                 {/* Revenue by Order Type */}
                 <Card>
                   <CardHeader>
@@ -287,9 +287,9 @@ const Reports = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={250}>
                       <PieChart>
-                        <Pie data={revenueByType} cx="50%" cy="50%" labelLine={false} label={({ name, value }) => `${name}: ₹${value}`} outerRadius={80} fill="#8884d8" dataKey="value">
+                        <Pie data={revenueByType} cx="50%" cy="50%" labelLine={false} label={({ name, value }) => `${name}: ₹${value}`} outerRadius={70} fill="#8884d8" dataKey="value">
                           {revenueByType.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}

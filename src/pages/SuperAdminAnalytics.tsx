@@ -76,41 +76,41 @@ export default function SuperAdminAnalytics() {
 
   return (
     <SuperAdminLayout>
-      <div className="space-y-6 p-3 sm:p-6">
+      <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 md:p-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-gray-900">Platform Analytics</h1>
-          <p className="text-gray-500 mt-1">Comprehensive platform-wide performance metrics</p>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900">Platform Analytics</h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">Comprehensive platform-wide performance metrics</p>
         </div>
 
         {/* KPI Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           {kpis.map(kpi => (
-            <div key={kpi.title} className="bg-white rounded-xl border p-5 shadow-sm">
-              <div className="flex justify-between items-start mb-3">
-                <div className="p-2 rounded-lg" style={{ background: kpi.color + "20" }}>
-                  <kpi.icon className="h-5 w-5" style={{ color: kpi.color }} />
+            <div key={kpi.title} className="bg-white rounded-xl border p-3 sm:p-5 shadow-sm">
+              <div className="flex justify-between items-start mb-2 sm:mb-3">
+                <div className="p-1.5 sm:p-2 rounded-lg" style={{ background: kpi.color + "20" }}>
+                  <kpi.icon className="h-4 sm:h-5 w-4 sm:w-5" style={{ color: kpi.color }} />
                 </div>
                 <span className={`flex items-center gap-1 text-xs font-bold ${kpi.up ? "text-green-600" : "text-red-500"}`}>
                   {kpi.up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
                   {kpi.change}
                 </span>
               </div>
-              <p className="text-sm text-gray-500">{kpi.title}</p>
-              <p className="text-2xl font-extrabold text-gray-900 mt-1">{loading ? "..." : kpi.value}</p>
+              <p className="text-xs sm:text-sm text-gray-500">{kpi.title}</p>
+              <p className="text-lg sm:text-2xl font-extrabold text-gray-900 mt-1">{loading ? "..." : kpi.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
           {/* Revenue Trend */}
-          <div className="bg-white rounded-xl border p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Monthly Revenue Trend</h2>
-            <div className="h-64">
+          <div className="bg-white rounded-xl border p-3 sm:p-6 shadow-sm">
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Monthly Revenue Trend</h2>
+            <div className="h-48 sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-                  <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={v => `₹${(v/1000).toFixed(0)}K`} />
+                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} />
+                  <YAxis stroke="#94a3b8" fontSize={11} tickFormatter={v => `₹${(v/1000).toFixed(0)}K`} />
                   <Tooltip formatter={(v: number) => [`₹${v.toLocaleString("en-IN")}`, "Revenue"]} />
                   <Line type="monotone" dataKey="revenue" stroke="#0ea5e9" strokeWidth={2.5} dot={false} />
                 </LineChart>
@@ -119,14 +119,14 @@ export default function SuperAdminAnalytics() {
           </div>
 
           {/* Orders Trend */}
-          <div className="bg-white rounded-xl border p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Monthly Orders</h2>
-            <div className="h-64">
+          <div className="bg-white rounded-xl border p-3 sm:p-6 shadow-sm">
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Monthly Orders</h2>
+            <div className="h-48 sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-                  <YAxis stroke="#94a3b8" fontSize={12} />
+                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} />
+                  <YAxis stroke="#94a3b8" fontSize={11} />
                   <Tooltip />
                   <Bar dataKey="orders" fill="#10b981" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -135,19 +135,19 @@ export default function SuperAdminAnalytics() {
           </div>
 
           {/* Order Type Distribution */}
-          <div className="bg-white rounded-xl border p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Order Type Distribution</h2>
+          <div className="bg-white rounded-xl border p-3 sm:p-6 shadow-sm">
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Order Type Distribution</h2>
             {orderTypeData.length === 0 ? (
-              <div className="h-64 flex items-center justify-center text-gray-400">No order data yet</div>
+              <div className="h-48 sm:h-64 flex items-center justify-center text-gray-400 text-sm">No order data yet</div>
             ) : (
-              <div className="h-64">
+              <div className="h-48 sm:h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={orderTypeData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
+                    <Pie data={orderTypeData} cx="50%" cy="50%" outerRadius={60} dataKey="value" label={({ name, value }) => `${name}: ${value}`}>
                       {orderTypeData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
                     <Tooltip />
-                    <Legend />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -155,14 +155,14 @@ export default function SuperAdminAnalytics() {
           </div>
 
           {/* Restaurant Growth */}
-          <div className="bg-white rounded-xl border p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Restaurant Growth</h2>
-            <div className="h-64">
+          <div className="bg-white rounded-xl border p-3 sm:p-6 shadow-sm">
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-3 sm:mb-4">Restaurant Growth</h2>
+            <div className="h-48 sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-                  <YAxis stroke="#94a3b8" fontSize={12} />
+                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} />
+                  <YAxis stroke="#94a3b8" fontSize={11} />
                   <Tooltip />
                   <Bar dataKey="restaurants" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
                 </BarChart>
