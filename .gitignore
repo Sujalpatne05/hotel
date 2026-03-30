@@ -27,3 +27,25 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Backend files (generated/local)
+server/backend*.mjs
+server/db*.mjs
+server/init-db*.mjs
+server/clear-db.mjs
+server/migrate-passwords.mjs
+server/run-migrations.mjs
+server/middleware/auth*.mjs
+server/middleware/upload.mjs
+server/migrations/
+server/models/
+server/routes/
+
+# Documentation files (session notes)
+*.md
+!README.md
