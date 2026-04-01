@@ -17,7 +17,13 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT || 5001);
 
-app.use(cors({ origin: '*', methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'] }));
+app.use(cors({ 
+  origin: '*', 
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: false
+}));
+app.options('*', cors()); // Handle preflight
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 

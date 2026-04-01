@@ -10,32 +10,28 @@ const API_BASE_URL = (() => {
   return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
-const monthlyRevenue = [
-  { month: "Jan", revenue: 120000, expenses: 45000 },
-  { month: "Feb", revenue: 148000, expenses: 52000 },
-  { month: "Mar", revenue: 164000, expenses: 58000 },
-  { month: "Apr", revenue: 171000, expenses: 61000 },
-  { month: "May", revenue: 198000, expenses: 70000 },
-  { month: "Jun", revenue: 216000, expenses: 75000 },
-  { month: "Jul", revenue: 229000, expenses: 80000 },
-  { month: "Aug", revenue: 241000, expenses: 84000 },
-  { month: "Sep", revenue: 254000, expenses: 88000 },
-  { month: "Oct", revenue: 263000, expenses: 91000 },
-  { month: "Nov", revenue: 279000, expenses: 96000 },
-  { month: "Dec", revenue: 301000, expenses: 103000 },
-];
-
 export default function SuperAdminRevenue() {
   const [orders, setOrders] = useState<any[]>([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
         const headers = buildAuthHeaders() || {};
-        const res = await fetch(`${API_BASE_URL}/orders`, { headers });
-        const data = await res.json();
-        setOrders(Array.isArray(data) ? data : []);
+        const [oRes, aRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/orders`, { headers }),
+          fetch(`${API_BASE_URL}/superadmin/analytics`, { headers }),
+        ]);
+        const [oData, aData] = await Promise.all([oRes.json(), aRes.json()]);
+        setOrders(Array.isArray(oData) ? oData : []);
+        if (aData?.monthlyData?.length > 0) {
+          // Add estimated expenses as 35% of revenue
+          setMonthlyRevenue(aData.monthlyData.map((m: any) => ({
+            ...m,
+            expenses: Math.round(m.revenue * 0.35),
+          })));
+        }
       } catch (e) { /* Revenue load error */ }
       finally { setLoading(false); }
     };
@@ -57,7 +53,7 @@ export default function SuperAdminRevenue() {
 
   const totalYearRevenue = monthlyRevenue.reduce((s, m) => s + m.revenue, 0);
   const totalYearExpenses = monthlyRevenue.reduce((s, m) => s + m.expenses, 0);
-  const profitMargin = Math.round(((totalYearRevenue - totalYearExpenses) / totalYearRevenue) * 100);
+  const profitMargin = totalYearRevenue > 0 ? Math.round(((totalYearRevenue - totalYearExpenses) / totalYearRevenue) * 100) : 65;
 
   return (
     <SuperAdminLayout>

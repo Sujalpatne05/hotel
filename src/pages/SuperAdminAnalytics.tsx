@@ -10,39 +10,27 @@ const API_BASE_URL = (() => {
   return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
-const monthlyData = [
-  { month: "Jan", revenue: 120000, orders: 320, restaurants: 8 },
-  { month: "Feb", revenue: 148000, orders: 400, restaurants: 10 },
-  { month: "Mar", revenue: 164000, orders: 500, restaurants: 12 },
-  { month: "Apr", revenue: 171000, orders: 450, restaurants: 14 },
-  { month: "May", revenue: 198000, orders: 600, restaurants: 16 },
-  { month: "Jun", revenue: 216000, orders: 550, restaurants: 18 },
-  { month: "Jul", revenue: 229000, orders: 580, restaurants: 20 },
-  { month: "Aug", revenue: 241000, orders: 520, restaurants: 22 },
-  { month: "Sep", revenue: 254000, orders: 480, restaurants: 24 },
-  { month: "Oct", revenue: 263000, orders: 510, restaurants: 26 },
-  { month: "Nov", revenue: 279000, orders: 490, restaurants: 28 },
-  { month: "Dec", revenue: 301000, orders: 610, restaurants: 30 },
-];
-
 const COLORS = ["#0ea5e9", "#10b981", "#f97316", "#8b5cf6"];
 
 export default function SuperAdminAnalytics() {
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [monthlyData, setMonthlyData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
         const headers = buildAuthHeaders() || {};
-        const [rRes, oRes] = await Promise.all([
+        const [rRes, oRes, aRes] = await Promise.all([
           fetch(`${API_BASE_URL}/superadmin/restaurants`, { headers }),
           fetch(`${API_BASE_URL}/orders`, { headers }),
+          fetch(`${API_BASE_URL}/superadmin/analytics`, { headers }),
         ]);
-        const [rData, oData] = await Promise.all([rRes.json(), oRes.json()]);
+        const [rData, oData, aData] = await Promise.all([rRes.json(), oRes.json(), aRes.json()]);
         setRestaurants(Array.isArray(rData) ? rData : []);
         setOrders(Array.isArray(oData) ? oData : []);
+        if (aData?.monthlyData?.length > 0) setMonthlyData(aData.monthlyData);
       } catch (e) { /* Analytics load error */ }
       finally { setLoading(false); }
     };

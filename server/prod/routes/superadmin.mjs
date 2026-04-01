@@ -7,6 +7,58 @@ import { uploadBase64Image } from '../middleware/upload.mjs';
 const router = Router();
 const sa = [authenticate, requireSuperAdmin];
 
+// ===== SUPERADMIN ANALYTICS =====
+router.get('/superadmin/analytics', ...sa, async (req, res) => {
+  try {
+    // Monthly revenue + orders for last 12 months across all restaurants
+    const { rows: monthly } = await query(`
+      SELECT
+        TO_CHAR(created_at, 'Mon') as month,
+        EXTRACT(MONTH FROM created_at) as month_num,
+        EXTRACT(YEAR FROM created_at) as year,
+        SUM(total) as revenue,
+        COUNT(*) as orders
+      FROM orders
+      WHERE created_at >= NOW() - INTERVAL '12 months'
+      GROUP BY TO_CHAR(created_at, 'Mon'), EXTRACT(MONTH FROM created_at), EXTRACT(YEAR FROM created_at)
+      ORDER BY year, month_num
+    `);
+
+    // Restaurant count per month (cumulative)
+    const { rows: restMonthly } = await query(`
+      SELECT
+        TO_CHAR(created_at, 'Mon') as month,
+        EXTRACT(MONTH FROM created_at) as month_num,
+        EXTRACT(YEAR FROM created_at) as year,
+        COUNT(*) as new_restaurants
+      FROM restaurants
+      WHERE created_at >= NOW() - INTERVAL '12 months'
+      GROUP BY TO_CHAR(created_at, 'Mon'), EXTRACT(MONTH FROM created_at), EXTRACT(YEAR FROM created_at)
+      ORDER BY year, month_num
+    `);
+
+    // Total restaurants for cumulative count
+    const { rows: totalRest } = await query(`SELECT COUNT(*) as total FROM restaurants`);
+    const totalRestaurants = Number(totalRest[0].total);
+
+    // Build monthly data merging orders + restaurants
+    const monthMap = {};
+    monthly.forEach(m => {
+      const key = `${m.year}-${String(m.month_num).padStart(2,'0')}`;
+      monthMap[key] = { month: m.month, revenue: Number(m.revenue || 0), orders: Number(m.orders || 0), restaurants: 0 };
+    });
+    restMonthly.forEach(m => {
+      const key = `${m.year}-${String(m.month_num).padStart(2,'0')}`;
+      if (!monthMap[key]) monthMap[key] = { month: m.month, revenue: 0, orders: 0, restaurants: 0 };
+      monthMap[key].restaurants = Number(m.new_restaurants || 0);
+    });
+
+    const monthlyData = Object.values(monthMap);
+
+    res.json({ monthlyData, totalRestaurants });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ===== RESTAURANTS =====
 router.get('/superadmin/restaurants', ...sa, async (req, res) => {
   try {
