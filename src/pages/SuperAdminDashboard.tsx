@@ -60,7 +60,7 @@ export default function SuperAdminDashboard() {
     { title: "Total Restaurants", value: restaurants.length, sub: `${activeRestaurants} active`, icon: Building, color: "#0ea5e9", bg: "#f0f9ff", border: "#bae6fd", route: "/superadmin-restaurants" },
     { title: "Admin Users", value: totalAdmins, sub: "Across all restaurants", icon: Users, color: "#8b5cf6", bg: "#f5f3ff", border: "#ddd6fe", route: "/superadmin-users" },
     { title: "Active Subscriptions", value: activeSubscriptions, sub: `${graceAccounts} in grace period`, icon: CreditCard, color: "#10b981", bg: "#f0fdf4", border: "#bbf7d0", route: "/superadmin-subscriptions" },
-    { title: "Platform MRR", value: "?30.1L", sub: "+12.4% this month", icon: TrendingUp, color: "#f97316", bg: "#fff7ed", border: "#fed7aa", route: "/superadmin-revenue" },
+    { title: "Platform MRR", value: "\u20B930.1L", sub: "+12.4% this month", icon: TrendingUp, color: "#f97316", bg: "#fff7ed", border: "#fed7aa", route: "/superadmin-revenue" },
   ];
 
   const recentRestaurants = [...restaurants].reverse().slice(0, 5);
