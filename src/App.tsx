@@ -19,7 +19,7 @@ import { Toaster } from "@/components/ui/toaster";
 import React from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AdminLogin from "./pages/LoginFixed";
 const SuperAdminLogin = AdminLogin; // same login page for everyone
@@ -78,13 +78,7 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        {showInstall && (
-          <div style={{position:'fixed',bottom:20,right:20,zIndex:9999}}>
-            <button style={{background:'#2563eb',color:'#fff',padding:'12px 24px',borderRadius:8,border:'none',fontWeight:'bold',boxShadow:'0 2px 8px #0002'}} onClick={handleInstall}>
-              Install App
-            </button>
-          </div>
-        )}
+        <PWAInstallPrompt />
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <Routes>
           <Route path="/admin-login" element={<AdminLogin />} />
