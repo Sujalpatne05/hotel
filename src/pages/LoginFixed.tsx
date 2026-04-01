@@ -7,11 +7,13 @@ const API_BASE_URL = (() => {
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
     return "/api";
   }
-  // For localhost development, always use /api proxy
-  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+  if (configured) return configured;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") return "http://localhost:5001";
     return "/api";
   }
-  return configured || "/api";
+  return "http://localhost:5001";
 })();
 
 const foodItems = [
@@ -54,7 +56,7 @@ const LoginFixed = () => {
       setLoading(true);
       setError("");
 
-      const payload = { username: username.trim(), password: password.trim() };
+      const payload = { email: username.trim(), password: password.trim() };
       
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
@@ -69,6 +71,9 @@ const LoginFixed = () => {
       }
 
       const mustChangePassword = Boolean(data?.user?.mustChangePassword);
+      // Clear old session first to prevent stale data from previous login
+      localStorage.clear();
+      sessionStorage.clear();
       saveAuthSession(
         data.token,
         data.user.role,

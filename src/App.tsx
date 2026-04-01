@@ -22,8 +22,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import AdminLogin from "./pages/LoginFixed";
-import SuperAdminLogin from "./pages/SuperAdminLogin";
-import Index from "./pages/Index";
+const SuperAdminLogin = AdminLogin; // same login page for everyone
+import Index from "./pages/Dashboard";
 import Billing from "./pages/Billing";
 import BillSettlement from "./pages/BillSettlement";
 import Payroll from "./pages/Payroll";
@@ -35,9 +35,9 @@ import CRM from "./pages/CRM";
 import Reports from "./pages/Reports";
 import PaymentsOverview from "./pages/PaymentsOverview";
 import NotFound from "./pages/NotFound";
-import RecipeManagement from "./pages/RecipeManagement";
 import AdminUsers from "./pages/AdminUsers";
 import MyProfile from "./pages/MyProfile";
+import Settings from "./pages/Settings";
 import { getAuthToken, getStoredRole } from "@/lib/session";
 
 const queryClient = new QueryClient();
@@ -128,14 +128,14 @@ const App = () => {
           <Route path="/payments-overview" element={
             (getRole() === "admin" || getRole() === "manager" || getRole() === "staff") ? <PaymentsOverview /> : <AdminLogin />
           } />
-          <Route path="/recipe-management" element={
-            (getRole() === "admin" || getRole() === "manager") ? <RecipeManagement /> : <AdminLogin />
-          } />
           <Route path="/admin-users" element={
             getRole() === "admin" ? <AdminUsers /> : <AdminLogin />
           } />
           <Route path="/my-profile" element={
             (getRole() === "admin" || getRole() === "manager" || getRole() === "staff") ? <MyProfile /> : <AdminLogin />
+          } />
+          <Route path="/settings" element={
+            getRole() === "admin" ? <Settings /> : <AdminLogin />
           } />
           <Route path="/table-management" element={
             (getRole() === "admin" || getRole() === "manager") ? <TableManagement /> : <AdminLogin />

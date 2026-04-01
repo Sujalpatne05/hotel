@@ -13,7 +13,7 @@ const API_BASE_URL = (() => {
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
     return "/api";
   }
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
 type OrderStatus = "pending" | "preparing" | "ready" | "served" | "completed";
@@ -85,9 +85,12 @@ export default function Orders() {
       }
 
       const mapped = (Array.isArray(data) ? data : []).map((order: ApiOrder) => {
-        // Use the actual order status from backend
-        // Don't override based on payment status - let KDS control the workflow
-        const displayStatus = order.status || "pending";
+        // Use actual status from backend - kitchen controls the workflow
+        // For takeaway/delivery, treat 'served' as 'completed' in display
+        let displayStatus = order.status || "pending";
+        if ((order.orderType === "take-away" || order.orderType === "delivery") && displayStatus === "served") {
+          displayStatus = "completed";
+        }
         
         return {
           id: order.id,

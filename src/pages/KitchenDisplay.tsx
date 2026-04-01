@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Clock, CheckCircle2, AlertCircle, ChefHat, Flame, Snowflake, Timer } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,7 +15,7 @@ const API_BASE_URL = (() => {
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
     return "/api";
   }
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
 type ApiOrder = {
@@ -32,7 +33,7 @@ interface KitchenOrder {
   orderNumber: string;
   tableNumber: string;
   items: OrderItem[];
-  status: "pending" | "preparing" | "ready" | "served";
+  status: "pending" | "preparing" | "ready" | "served" | "completed";
   priority: "normal" | "urgent";
   timestamp: Date;
   estimatedTime: number;
@@ -72,7 +73,7 @@ const parseBillItem = (raw: string, idx: number): OrderItem => {
 
 const toItemStatus = (orderStatus: KitchenOrder["status"]): OrderItem["status"] => {
   if (orderStatus === "preparing") return "preparing";
-  if (orderStatus === "ready" || orderStatus === "served") return "ready";
+  if (orderStatus === "ready" || orderStatus === "served" || orderStatus === "completed") return "ready";
   return "pending";
 };
 
@@ -200,7 +201,9 @@ export default function KitchenDisplay() {
       } else if (nextStatus === "ready") {
         toast.success("Order ready for serving");
       } else if (nextStatus === "served") {
-        toast.success("Order served and table released");
+        toast.success("Order served");
+      } else if (nextStatus === "completed") {
+        toast.success("Order completed");
       }
     } catch {
       setOrders(previous);
@@ -232,19 +235,92 @@ export default function KitchenDisplay() {
     }
   };
 
-  const filteredOrders = orders
-    .filter((order) => order.status !== "served")
+  const activeOrders = orders
+    .filter((order) => order.status !== "served" && order.status !== "completed")
     .sort((a, b) => {
       if (a.priority === "urgent" && b.priority !== "urgent") return -1;
       if (a.priority !== "urgent" && b.priority === "urgent") return 1;
       return a.timestamp.getTime() - b.timestamp.getTime();
     });
 
+  const completedOrders = orders
+    .filter((order) => order.status === "served" || order.status === "completed")
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
   const stats = {
     pending: orders.filter(o => o.status === "pending").length,
     preparing: orders.filter(o => o.status === "preparing").length,
     ready: orders.filter(o => o.status === "ready").length,
-    served: orders.filter(o => o.status === "served").length,
+    served: orders.filter(o => o.status === "served" || o.status === "completed").length,
+  };
+
+  const renderOrderCard = (order: KitchenOrder, isCompleted = false) => {
+    const elapsed = getElapsedTime(order.timestamp);
+    const isOverdue = elapsed > order.estimatedTime && !isCompleted;
+
+    return (
+      <Card key={order.id} className={cn("relative overflow-hidden", order.priority === "urgent" && !isCompleted && "ring-2 ring-red-500", isOverdue && "ring-2 ring-orange-500", isCompleted && "opacity-75")}>
+        <div className={`absolute top-0 left-0 right-0 h-1 ${getStatusColor(order.status)}`} />
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle className="text-xl">{order.orderNumber}</CardTitle>
+              <div className="text-sm mt-1">
+                {order.type === "dine-in" ? `Table ${order.tableNumber}` : (
+                  <Badge className={order.type === "takeout" ? "bg-orange-500" : "bg-purple-500"}>
+                    {order.type === "takeout" ? "TAKEAWAY" : "DELIVERY"}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 items-end">
+              {order.priority === "urgent" && !isCompleted && <Badge className="bg-red-500"><AlertCircle className="h-3 w-3 mr-1" />URGENT</Badge>}
+              <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className={cn("flex items-center gap-2 text-sm font-medium p-2 rounded", isOverdue ? "bg-red-50 text-red-700" : isCompleted ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-700")}>
+            <Timer className="h-4 w-4" />
+            <span>{elapsed} min elapsed</span>
+            {isOverdue && <span className="ml-auto font-bold">OVERDUE</span>}
+            {isCompleted && <span className="ml-auto font-bold flex items-center gap-1"><CheckCircle2 className="h-3 w-3" /> Done</span>}
+          </div>
+
+          <div className="space-y-2">
+            {order.items.map(item => (
+              <div key={`${order.id}-${item.id}`} className="flex items-start gap-3 p-2 bg-gray-50 rounded">
+                <div className="flex-shrink-0 mt-1">{getStationIcon(item.station)}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">{item.quantity}x</span>
+                    <span className="text-sm">{item.name}</span>
+                  </div>
+                  {item.notes && <p className="text-xs text-orange-600 mt-1">Note: {item.notes}</p>}
+                </div>
+                <div className="flex gap-1">
+                  {item.status === "pending" && <Badge variant="outline">Pending</Badge>}
+                  {item.status === "preparing" && <Badge className="bg-blue-500">Preparing</Badge>}
+                  {item.status === "ready" && <Badge className="bg-green-500">Ready</Badge>}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {!isCompleted && (
+            <div className="flex gap-2 pt-2">
+              {order.status === "pending" && <Button className="flex-1" onClick={() => updateOrderStatus(order.id, "preparing")}>Start Order</Button>}
+              {order.status === "preparing" && <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => updateOrderStatus(order.id, "ready")}><CheckCircle2 className="h-4 w-4 mr-2" />Mark Ready</Button>}
+              {order.status === "ready" && (
+                <Button className="flex-1 bg-emerald-600 hover:bg-emerald-700" onClick={() => updateOrderStatus(order.id, order.type === "dine-in" ? "served" : "completed")}>
+                  {order.type === "dine-in" ? "Serve Order" : "Mark Completed"}
+                </Button>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
   };
 
   return (
@@ -253,130 +329,79 @@ export default function KitchenDisplay() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Kitchen Display System</h1>
-            <p className="text-gray-600 mt-1">All backend orders are shown here automatically</p>
+            <p className="text-gray-600 mt-1">Live order tracking for kitchen staff</p>
             <p className="text-sm text-gray-500 mt-1">Current Time: {currentTime.toLocaleTimeString()}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-yellow-600">Pending</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.pending}</div>
-            </CardContent>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-yellow-600">Pending</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-yellow-600">{stats.pending}</div></CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-blue-600">Preparing</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-blue-600">{stats.preparing}</div>
-            </CardContent>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-blue-600">Preparing</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-blue-600">{stats.preparing}</div></CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-green-600">Ready</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.ready}</div>
-            </CardContent>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-green-600">Ready</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-green-600">{stats.ready}</div></CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Served</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-600">{stats.served}</div>
-            </CardContent>
+            <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-gray-600">Served</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-bold text-gray-600">{stats.served}</div></CardContent>
           </Card>
         </div>
 
         {loading ? (
-          <Card>
-            <CardContent className="py-12 text-center text-gray-500">Loading orders...</CardContent>
-          </Card>
+          <Card><CardContent className="py-12 text-center text-gray-500">Loading orders...</CardContent></Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredOrders.map(order => {
-              const elapsed = getElapsedTime(order.timestamp);
-              const isOverdue = elapsed > order.estimatedTime;
+          <Tabs defaultValue="active">
+            <TabsList className="mb-4">
+              <TabsTrigger value="active">
+                Active Orders
+                {activeOrders.length > 0 && (
+                  <Badge className="ml-2 bg-orange-500 text-white text-xs">{activeOrders.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="completed">
+                Completed
+                {completedOrders.length > 0 && (
+                  <Badge className="ml-2 bg-gray-400 text-white text-xs">{completedOrders.length}</Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
-              return (
-                <Card key={order.id} className={cn("relative overflow-hidden", order.priority === "urgent" && "ring-2 ring-red-500", isOverdue && "ring-2 ring-orange-500")}>
-                  <div className={`absolute top-0 left-0 right-0 h-1 ${getStatusColor(order.status)}`} />
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-xl">{order.orderNumber}</CardTitle>
-                        <div className="text-sm mt-1">
-                          {order.type === "dine-in" ? `Table ${order.tableNumber}` : (
-                            <Badge className={order.type === "takeout" ? "bg-orange-500" : "bg-purple-500"}>
-                              {order.type === "takeout" ? "TAKEAWAY" : "DELIVERY"}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2 items-end">
-                        {order.priority === "urgent" && <Badge className="bg-red-500"><AlertCircle className="h-3 w-3 mr-1" />URGENT</Badge>}
-                        <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className={cn("flex items-center gap-2 text-sm font-medium p-2 rounded", isOverdue ? "bg-red-50 text-red-700" : "bg-gray-50 text-gray-700")}>
-                      <Timer className="h-4 w-4" />
-                      <span>{elapsed} min elapsed</span>
-                      {isOverdue && <span className="ml-auto font-bold">OVERDUE</span>}
-                    </div>
-
-                    <div className="space-y-2">
-                      {order.items.map(item => (
-                        <div key={`${order.id}-${item.id}`} className="flex items-start gap-3 p-2 bg-gray-50 rounded">
-                          <div className="flex-shrink-0 mt-1">{getStationIcon(item.station)}</div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm">{item.quantity}x</span>
-                              <span className="text-sm">{item.name}</span>
-                            </div>
-                            {item.notes && <p className="text-xs text-orange-600 mt-1">Note: {item.notes}</p>}
-                          </div>
-                          <div className="flex gap-1">
-                            {item.status === "pending" && <Badge variant="outline">Pending</Badge>}
-                            {item.status === "preparing" && <Badge className="bg-blue-500">Preparing</Badge>}
-                            {item.status === "ready" && <Badge className="bg-green-500">Ready</Badge>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="flex gap-2 pt-2">
-                      {order.status === "pending" && <Button className="flex-1" onClick={() => updateOrderStatus(order.id, "preparing")}>Start Order</Button>}
-                      {order.status === "preparing" && <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={() => updateOrderStatus(order.id, "ready")}><CheckCircle2 className="h-4 w-4 mr-2" />Mark Ready</Button>}
-                      {order.status === "ready" && (
-                        <Button
-                          className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                          onClick={() => updateOrderStatus(order.id, "served")}
-                        >
-                          Serve Order
-                        </Button>
-                      )}
-                    </div>
+            <TabsContent value="active">
+              {activeOrders.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <ChefHat className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <p className="text-gray-500">No active orders in kitchen</p>
                   </CardContent>
                 </Card>
-              );
-            })}
-          </div>
-        )}
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {activeOrders.map(order => renderOrderCard(order, false))}
+                </div>
+              )}
+            </TabsContent>
 
-        {!loading && filteredOrders.length === 0 && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <ChefHat className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-500">No active orders in kitchen</p>
-            </CardContent>
-          </Card>
+            <TabsContent value="completed">
+              {completedOrders.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <CheckCircle2 className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                    <p className="text-gray-500">No completed orders yet</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {completedOrders.map(order => renderOrderCard(order, true))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </DashboardLayout>

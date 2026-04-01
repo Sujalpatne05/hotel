@@ -65,7 +65,7 @@ const API_BASE_URL = (() => {
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
     return "/api";
   }
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
 export default function TableManagement() {
@@ -87,10 +87,24 @@ export default function TableManagement() {
   const [newTable, setNewTable] = useState({
     number: "",
     capacity: "",
-    section: "Main Hall",
+    section: "",
   });
 
-  const sections = ["Main Hall", "Outdoor", "Private Room", "Bar Area", "VIP Section"];
+  // Derive sections dynamically from existing tables + settings + common suggestions
+  const SECTION_SUGGESTIONS = ["Main Hall", "Outdoor", "Private Room", "Bar Area", "VIP Section"];
+  const existingSections = Array.from(new Set(tables.map(t => t.section).filter(Boolean)));
+  const [settingsSections, setSettingsSections] = useState<string[]>([]);
+
+  useEffect(() => {
+    const headers = buildAuthHeaders();
+    if (!headers) return;
+    fetch(`${API_BASE_URL}/settings`, { headers })
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d.table_sections)) setSettingsSections(d.table_sections); })
+      .catch(() => {});
+  }, []);
+
+  const allSectionSuggestions = Array.from(new Set([...existingSections, ...settingsSections, ...SECTION_SUGGESTIONS]));
 
   const goToLogin = (message = "Session expired. Please login again.") => {
     setError(message);
@@ -179,7 +193,7 @@ export default function TableManagement() {
     }
     // Validate unique table number
     if (tables.some(t => t.number === Number(newTable.number))) {
-      toast.error("Table number must be unique");
+      toast.error(`Table ${newTable.number} already exists. Please use a different number.`);
       return;
     }
 
@@ -197,7 +211,7 @@ export default function TableManagement() {
         body: JSON.stringify({
           table_number: Number(newTable.number),
           capacity: Number(newTable.capacity),
-          section: newTable.section,
+          section: newTable.section.trim() || "General",
         }),
       });
       const data = await response.json();
@@ -212,7 +226,7 @@ export default function TableManagement() {
       }
 
       await loadTableContext(true);
-      setNewTable({ number: "", capacity: "", section: "Main Hall" });
+      setNewTable({ number: "", capacity: "", section: "" });
       setIsAddDialogOpen(false);
       toast.success("Table added successfully");
     } catch {
@@ -436,7 +450,10 @@ export default function TableManagement() {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Table Management</h1>
             <p className="text-gray-600 mt-1">Manage restaurant seating and table availability</p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+              setIsAddDialogOpen(open);
+              if (!open) setNewTable({ number: "", capacity: "", section: "" });
+            }}>
             <DialogTrigger asChild>
               <Button className="w-full sm:w-auto">
                 <Plus className="h-4 w-4 mr-2" />
@@ -458,6 +475,11 @@ export default function TableManagement() {
                     value={newTable.number}
                     onChange={(e) => setNewTable({ ...newTable, number: e.target.value })}
                   />
+                  {tables.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Existing: {tables.map(t => t.number).sort((a,b) => a-b).join(", ")}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="capacity">Seating Capacity *</Label>
@@ -470,17 +492,20 @@ export default function TableManagement() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="section">Section</Label>
-                  <Select value={newTable.section} onValueChange={(value) => setNewTable({ ...newTable, section: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sections.map(section => (
-                        <SelectItem key={section} value={section}>{section}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="section">Section <span className="text-xs text-muted-foreground">(optional)</span></Label>
+                  <Input
+                    id="section"
+                    list="section-suggestions"
+                    placeholder="e.g. Main Hall, Rooftop, Garden..."
+                    value={newTable.section}
+                    onChange={(e) => setNewTable({ ...newTable, section: e.target.value })}
+                  />
+                  <datalist id="section-suggestions">
+                    {allSectionSuggestions.map(s => (
+                      <option key={s} value={s} />
+                    ))}
+                  </datalist>
+                  <p className="text-xs text-muted-foreground">Type any section name or pick a suggestion.</p>
                 </div>
               </div>
               <DialogFooter>
@@ -544,7 +569,7 @@ export default function TableManagement() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Sections</SelectItem>
-                    {sections.map(section => (
+                    {existingSections.map(section => (
                       <SelectItem key={section} value={section}>{section}</SelectItem>
                     ))}
                   </SelectContent>

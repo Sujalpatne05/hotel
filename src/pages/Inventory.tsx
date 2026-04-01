@@ -15,7 +15,7 @@ const API_BASE_URL = (() => {
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
     return "/api";
   }
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
 type InventoryItem = {
@@ -63,7 +63,7 @@ const Inventory = () => {
       return;
     }
 
-    const response = await fetch(`/api/inventory`, { headers });
+    const response = await fetch(`${API_BASE_URL}/inventory`, { headers });
     if (isAuthError(response.status)) {
       clearAuthSession();
       window.location.href = "/admin-login";
@@ -151,7 +151,7 @@ const Inventory = () => {
     const headers = buildAuthHeaders();
     if (!headers) return;
 
-    const response = await fetch(`/api/inventory`, {
+    const response = await fetch(`${API_BASE_URL}/inventory`, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -179,6 +179,18 @@ const Inventory = () => {
     setRestockQty(item.stock);
   };
 
+  const handleDelete = async (id: number) => {
+    if (!confirm("Delete this inventory item?")) return;
+    const headers = buildAuthHeaders();
+    if (!headers) return;
+    const response = await fetch(`${API_BASE_URL}/inventory/${id}`, { method: "DELETE", headers });
+    if (response.ok) {
+      setItems(prev => prev.filter(i => i.id !== id));
+    } else {
+      alert("Unable to delete item");
+    }
+  };
+
   const handleRestockClose = () => {
     setRestockModal({ open: false, itemId: null });
     setRestockQty(0);
@@ -201,7 +213,7 @@ const Inventory = () => {
     const headers = buildAuthHeaders();
     if (!headers) return;
 
-    const response = await fetch(`/api/inventory/${restockModal.itemId}`, {
+    const response = await fetch(`${API_BASE_URL}/inventory/${restockModal.itemId}`, {
       method: "PATCH",
       headers,
       body: JSON.stringify({ quantity: Number(restockQty) }),
@@ -293,6 +305,9 @@ const Inventory = () => {
                       </div>
                       <Button variant="outline" size="sm" onClick={() => handleRestockOpen(item)}>
                         Restock
+                      </Button>
+                      <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleDelete(item.id)}>
+                        Delete
                       </Button>
                     </div>
                   </div>

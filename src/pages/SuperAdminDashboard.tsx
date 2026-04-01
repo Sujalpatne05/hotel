@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle, Building, CreditCard, Users, BarChart2,
@@ -12,7 +12,7 @@ import { buildAuthHeaders } from "@/lib/session";
 const API_BASE_URL = (() => {
   const configured = (import.meta.env.VITE_API_URL || "").trim();
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) return "/api";
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
 const monthlyRevenue = [
@@ -60,7 +60,7 @@ export default function SuperAdminDashboard() {
     { title: "Total Restaurants", value: restaurants.length, sub: `${activeRestaurants} active`, icon: Building, color: "#0ea5e9", bg: "#f0f9ff", border: "#bae6fd", route: "/superadmin-restaurants" },
     { title: "Admin Users", value: totalAdmins, sub: "Across all restaurants", icon: Users, color: "#8b5cf6", bg: "#f5f3ff", border: "#ddd6fe", route: "/superadmin-users" },
     { title: "Active Subscriptions", value: activeSubscriptions, sub: `${graceAccounts} in grace period`, icon: CreditCard, color: "#10b981", bg: "#f0fdf4", border: "#bbf7d0", route: "/superadmin-subscriptions" },
-    { title: "Platform MRR", value: "₹30.1L", sub: "+12.4% this month", icon: TrendingUp, color: "#f97316", bg: "#fff7ed", border: "#fed7aa", route: "/superadmin-revenue" },
+    { title: "Platform MRR", value: "?30.1L", sub: "+12.4% this month", icon: TrendingUp, color: "#f97316", bg: "#fff7ed", border: "#fed7aa", route: "/superadmin-revenue" },
   ];
 
   const recentRestaurants = [...restaurants].reverse().slice(0, 5);
@@ -131,8 +131,8 @@ export default function SuperAdminDashboard() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-                  <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={v => `₹${(v/100000).toFixed(0)}L`} />
-                  <Tooltip formatter={(v: number) => [`₹${(v/100000).toFixed(1)}L`, "Revenue"]} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickFormatter={v => `?${(v/100000).toFixed(0)}L`} />
+                  <Tooltip formatter={(v: number) => [`?${(v/100000).toFixed(1)}L`, "Revenue"]} />
                   <Area type="monotone" dataKey="revenue" stroke="#0284c7" fill="url(#revGrad)" strokeWidth={2.5} />
                 </AreaChart>
               </ResponsiveContainer>
@@ -193,7 +193,7 @@ export default function SuperAdminDashboard() {
                     <tr key={r.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4 font-semibold text-gray-900">{r.name}</td>
                       <td className="py-3 px-4 text-gray-600">{r.owner}</td>
-                      <td className="py-3 px-4 text-gray-600">{r.city || "—"}</td>
+                      <td className="py-3 px-4 text-gray-600">{r.city || "�"}</td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">{r.plan || "Standard"}</span>
                       </td>

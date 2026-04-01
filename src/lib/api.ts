@@ -5,7 +5,14 @@ export const API_BASE_URL = (() => {
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
     return "/api";
   }
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  if (configured) return configured;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    // treat both localhost and 127.0.0.1 as local dev
+    if (host === "localhost" || host === "127.0.0.1") return "http://localhost:5001";
+    return "/api";
+  }
+  return "http://localhost:5001";
 })();
 
 export const apiRequest = async <T>(path: string, init: RequestInit = {}, requiresAuth = true): Promise<T> => {

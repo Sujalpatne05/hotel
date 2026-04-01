@@ -1,73 +1,154 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { DashboardLayout } from "@/components/DashboardLayout";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/sonner";
+import { buildAuthHeaders } from "@/lib/session";
 import { UserCog } from "lucide-react";
 
-const initialProfile = {
-  name: "Admin User",
-  email: "admin@restrohub.com",
-  role: "Super Admin",
-  photo: "https://randomuser.me/api/portraits/men/32.jpg",
-};
+const API_BASE_URL = (() => {
+  const configured = (import.meta.env.VITE_API_URL || "").trim();
+  if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) return "/api";
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
+})();
 
-const MyProfile = () => {
-  const [profile, setProfile] = useState(initialProfile);
-  const [editName, setEditName] = useState(profile.name);
-  const [editPassword, setEditPassword] = useState("");
-  const [editPhoto, setEditPhoto] = useState(profile.photo);
+const MyProfile: React.FC = () => {
+  const [profile, setProfile] = useState({ name: "", email: "", role: "", restaurantName: "" });
+  const [editName, setEditName] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [savingName, setSavingName] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
+  useEffect(() => {
+    const headers = buildAuthHeaders();
+    if (!headers) return;
+    fetch(`${API_BASE_URL}/profile`, { headers })
+      .then(r => r.json())
+      .then(d => {
+        setProfile({ name: d.name || "", email: d.email || "", role: d.role || "", restaurantName: d.restaurantName || "" });
+        setEditName(d.name || "");
+      })
+      .catch(() => toast.error("Failed to load profile"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSaveName = async (e: React.FormEvent) => {
     e.preventDefault();
-    setProfile({ ...profile, name: editName, photo: editPhoto });
-    setEditPassword("");
-    alert("Profile updated!");
+    if (!editName.trim()) { toast.error("Name cannot be empty"); return; }
+    setSavingName(true);
+    try {
+      const headers = buildAuthHeaders();
+      const res = await fetch(`${API_BASE_URL}/profile`, {
+        method: "PUT",
+        headers: headers!,
+        body: JSON.stringify({ name: editName.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setProfile(p => ({ ...p, name: data.name }));
+      toast.success("Name updated successfully");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update name");
+    } finally {
+      setSavingName(false);
+    }
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword || !newPassword) { toast.error("Fill in all password fields"); return; }
+    if (newPassword.length < 6) { toast.error("New password must be at least 6 characters"); return; }
+    if (newPassword !== confirmPassword) { toast.error("Passwords don't match"); return; }
+    setSavingPassword(true);
+    try {
+      const headers = buildAuthHeaders();
+      const res = await fetch(`${API_BASE_URL}/profile/change-password`, {
+        method: "POST",
+        headers: headers!,
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
+      toast.success("Password changed successfully");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to change password");
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  if (loading) return (
+    <DashboardLayout>
+      <div className="flex items-center justify-center h-64 text-muted-foreground">Loading profile...</div>
+    </DashboardLayout>
+  );
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-white to-blue-300">
-      <div className="bg-white/90 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-blue-200 animate-fade-in backdrop-blur-md">
-        <div className="flex flex-col items-center mb-6">
-          <img src={profile.photo} alt="Profile" className="h-20 w-20 rounded-full object-cover border-4 border-blue-600 mb-2" />
-          <h2 className="text-xl font-bold text-blue-700 mb-1">{profile.name}</h2>
-          <div className="text-sm text-gray-600 mb-1">{profile.email}</div>
-          <div className="flex items-center gap-1 text-xs font-semibold text-blue-600 mb-2">
-            <UserCog className="h-4 w-4" />
-            {profile.role}
-          </div>
-        </div>
-        <form onSubmit={handleSave} className="space-y-4">
-          <div>
-            <label className="block mb-1 font-semibold text-gray-700">Edit Name</label>
-            <input
-              type="text"
-              className="w-full border border-blue-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-              value={editName}
-              onChange={e => setEditName(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-semibold text-gray-700">Change Password</label>
-            <input
-              type="password"
-              className="w-full border border-blue-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-              value={editPassword}
-              onChange={e => setEditPassword(e.target.value)}
-              placeholder="Enter new password"
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-semibold text-gray-700">Update Profile Photo (URL)</label>
-            <input
-              type="text"
-              className="w-full border border-blue-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500"
-              value={editPhoto}
-              onChange={e => setEditPhoto(e.target.value)}
-              placeholder="Paste image URL"
-            />
-          </div>
-          <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 transition">Save Changes</button>
-        </form>
+    <DashboardLayout>
+      <div className="max-w-lg mx-auto py-8 px-4 space-y-6">
+        <h1 className="text-2xl font-bold flex items-center gap-2">
+          <UserCog className="text-orange-500" /> My Profile
+        </h1>
+
+        {/* Profile Info */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Account Info</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="flex justify-between"><span className="text-muted-foreground">Email</span><span className="font-medium">{profile.email}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Role</span><span className="font-medium capitalize">{profile.role}</span></div>
+            {profile.restaurantName && <div className="flex justify-between"><span className="text-muted-foreground">Restaurant</span><span className="font-medium">{profile.restaurantName}</span></div>}
+          </CardContent>
+        </Card>
+
+        {/* Edit Name */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Edit Name</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSaveName} className="flex gap-2">
+              <Input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Your name" className="flex-1" />
+              <Button type="submit" disabled={savingName} className="bg-orange-500 hover:bg-orange-600">
+                {savingName ? "Saving..." : "Save"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Change Password */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Change Password</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleChangePassword} className="space-y-3">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Current Password</label>
+                <Input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} placeholder="Enter current password" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">New Password</label>
+                <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Min 6 characters" />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Confirm New Password</label>
+                <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Repeat new password" />
+              </div>
+              <Button type="submit" disabled={savingPassword} className="w-full bg-orange-500 hover:bg-orange-600">
+                {savingPassword ? "Changing..." : "Change Password"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 

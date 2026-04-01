@@ -156,8 +156,17 @@ const BillSettlement: React.FC = () => {
             {loadingOrders ? (
               <div className="col-span-full text-center py-8 text-muted-foreground">Loading orders...</div>
             ) : orders.length === 0 ? (
-              <div className="col-span-full text-center py-8 text-muted-foreground">
-                No pending payments. All tables are settled!
+              <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                  <Check className="text-green-500" size={40} />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">All Settled!</h3>
+                <p className="text-muted-foreground text-sm max-w-xs">
+                  No pending payments right now. All dine-in tables have been cleared.
+                </p>
+                <p className="text-xs text-muted-foreground mt-4 bg-orange-50 px-4 py-2 rounded-full">
+                  New orders will appear here automatically
+                </p>
               </div>
             ) : (
               // Group orders by table
@@ -170,7 +179,7 @@ const BillSettlement: React.FC = () => {
                 }, new Map<number, Order[]>())
               ).map(([tableNumber, tableOrders]) => {
                 const tableInfo = getTableInfo(tableNumber);
-                const totalAmount = tableOrders.reduce((sum, o) => sum + o.total, 0);
+                const totalAmount = tableOrders.reduce((sum, o) => sum + Number(o.total), 0);
                 const isExpanded = expandedOrderId === tableNumber;
                 
                 return (
@@ -209,7 +218,7 @@ const BillSettlement: React.FC = () => {
                                 <li key={i}>• {item}</li>
                               ))}
                             </ul>
-                            <p className="text-xs font-semibold mt-1">₹{order.total}</p>
+                            <p className="text-xs font-semibold mt-1">₹{Number(order.total).toFixed(2)}</p>
                           </div>
                         ))}
                       </div>
@@ -219,7 +228,7 @@ const BillSettlement: React.FC = () => {
                         <div className="flex justify-between items-center">
                           <span className="font-semibold">Total Amount:</span>
                           <span className="text-2xl font-bold text-orange-600">
-                            ₹{totalAmount}
+                            ₹{totalAmount.toFixed(2)}
                           </span>
                         </div>
                       </div>

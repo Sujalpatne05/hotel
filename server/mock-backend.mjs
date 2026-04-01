@@ -112,11 +112,6 @@ const inventory = [
   { id: 3, name: "Basmati Rice", quantity: 45, stock: 45, unit: "kg", min_stock: 20, max_stock: 100, category: "Grains", updated_at: new Date().toISOString() },
 ];
 
-const recipes = [
-  { id: 1, name: "Paneer Tikka", category: "Starter", prep_time: 20, stock: "Available", image: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80", ingredients: "Paneer, Yogurt, Spices, Capsicum" },
-  { id: 2, name: "Veg Biryani", category: "Main Course", prep_time: 30, stock: "Available", image: "https://images.unsplash.com/photo-1604908177522-432c5c7c1c8a?auto=format&fit=crop&w=400&q=80", ingredients: "Rice, Mixed Vegetables, Spices" },
-];
-
 const supportTickets = [
   { id: 1, subject: "Payment gateway issue", restaurant: "Demo Restaurant", status: "open", created_at: new Date().toISOString() },
   { id: 2, subject: "Menu not syncing", restaurant: "Demo Restaurant", status: "in-progress", created_at: new Date(Date.now() - 86400000).toISOString() },
@@ -563,6 +558,31 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === "PUT" && path.match(/^\/reservations\/\d+$/)) {
+      const id = Number(path.split("/").pop());
+      const body = await parseBody(req);
+      const reservation = reservations.find(r => r.id === id);
+      if (!reservation) { notFound(res); return; }
+      if (body.customer_name) reservation.customer_name = String(body.customer_name).trim();
+      if (body.customer_phone) reservation.customer_phone = String(body.customer_phone).trim();
+      if (body.reservation_date) reservation.reservation_date = String(body.reservation_date);
+      if (body.reservation_time) reservation.reservation_time = String(body.reservation_time);
+      if (body.guests !== undefined) reservation.guests = Number(body.guests);
+      if (body.table_number) reservation.table_number = String(body.table_number);
+      if (body.status) reservation.status = String(body.status);
+      send(res, 200, reservation);
+      return;
+    }
+
+    if (req.method === "DELETE" && path.match(/^\/reservations\/\d+$/)) {
+      const id = Number(path.split("/").pop());
+      const idx = reservations.findIndex(r => r.id === id);
+      if (idx === -1) { notFound(res); return; }
+      reservations.splice(idx, 1);
+      send(res, 200, { success: true });
+      return;
+    }
+
     if (req.method === "GET" && path === "/deliveries") {
       send(res, 200, deliveries);
       return;
@@ -731,13 +751,38 @@ const server = createServer(async (req, res) => {
         name: String(body.name).trim(),
         email: String(body.email).trim(),
         phone: String(body.phone).trim(),
-        visits: 1,
-        total_spent: 0,
-        vip: false,
+        visits: Number(body.visits || 1),
+        total_spent: Number(body.totalSpent || body.total_spent || 0),
+        vip: Boolean(body.vip),
         last_visit: new Date().toISOString(),
       };
       crmCustomers.push(customer);
       send(res, 201, customer);
+      return;
+    }
+
+    if (req.method === "PATCH" && path.match(/^\/crm\/customers\/\d+$/)) {
+      const id = Number(path.split("/").pop());
+      const body = await parseBody(req);
+      const idx = crmCustomers.findIndex(c => c.id === id);
+      if (idx === -1) { notFound(res); return; }
+      if (body.name !== undefined) crmCustomers[idx].name = String(body.name).trim();
+      if (body.email !== undefined) crmCustomers[idx].email = String(body.email).trim();
+      if (body.phone !== undefined) crmCustomers[idx].phone = String(body.phone).trim();
+      if (body.visits !== undefined) crmCustomers[idx].visits = Number(body.visits);
+      if (body.totalSpent !== undefined) crmCustomers[idx].total_spent = Number(body.totalSpent);
+      if (body.total_spent !== undefined) crmCustomers[idx].total_spent = Number(body.total_spent);
+      if (body.vip !== undefined) crmCustomers[idx].vip = Boolean(body.vip);
+      send(res, 200, crmCustomers[idx]);
+      return;
+    }
+
+    if (req.method === "DELETE" && path.match(/^\/crm\/customers\/\d+$/)) {
+      const id = Number(path.split("/").pop());
+      const idx = crmCustomers.findIndex(c => c.id === id);
+      if (idx === -1) { notFound(res); return; }
+      crmCustomers.splice(idx, 1);
+      send(res, 200, { success: true });
       return;
     }
 
@@ -801,28 +846,12 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === "GET" && path === "/recipes") {
-      send(res, 200, recipes);
-      return;
-    }
-
-    if (req.method === "POST" && path === "/recipes") {
-      const body = await parseBody(req);
-      if (!body.name) {
-        send(res, 400, { error: "Invalid recipe payload" });
-        return;
-      }
-      const recipe = {
-        id: Math.max(...recipes.map(r => r.id), 0) + 1,
-        name: String(body.name).trim(),
-        category: String(body.category || "General"),
-        prep_time: Number(body.prep_time || 15),
-        stock: String(body.stock || "Available"),
-        image: String(body.image || ""),
-        ingredients: String(body.ingredients || ""),
-      };
-      recipes.push(recipe);
-      send(res, 201, recipe);
+    if (req.method === "DELETE" && /^\/inventory\/\d+$/.test(path)) {
+      const id = Number(path.split("/")[2]);
+      const idx = inventory.findIndex(i => i.id === id);
+      if (idx === -1) { notFound(res); return; }
+      inventory.splice(idx, 1);
+      send(res, 200, { success: true });
       return;
     }
 

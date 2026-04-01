@@ -8,8 +8,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import React, { useState, useEffect } from "react";
-import { apiRequest } from "@/lib/api";
-import { getAuthToken, getStoredRole, getStoredUserId } from "@/lib/session";
+import { apiRequest, API_BASE_URL } from "@/lib/api";
+import { getAuthToken, getStoredRole, getStoredUserId, buildAuthHeaders, getStoredRestaurantName } from "@/lib/session";
 import { toast } from "@/components/ui/sonner";
 import { useLocation } from "react-router-dom";
 import { Monitor, ShoppingCart, UtensilsCrossed } from "lucide-react";
@@ -44,6 +44,21 @@ const Billing: React.FC = () => {
 	const [loadingOrder, setLoadingOrder] = useState(false);
 	const [recentOrders, setRecentOrders] = useState<any[]>([]);
 	const [loadingRecentOrders, setLoadingRecentOrders] = useState(false);
+	const [taxRate, setTaxRate] = useState<number>(5);
+	const [serviceCharge, setServiceCharge] = useState<number>(0);
+
+	// Fetch settings (tax rate, service charge, default delivery partner)
+	useEffect(() => {
+		apiRequest<{ tax_rate: number; service_charge: number; default_delivery_partner: string }>("/settings", { method: "GET" }, true)
+			.then(d => {
+				setTaxRate(Number(d.tax_rate ?? 5));
+				setServiceCharge(Number(d.service_charge ?? 0));
+				if (d.default_delivery_partner) {
+					setDeliveryPartner(d.default_delivery_partner as "in-house" | "swiggy" | "zomato");
+				}
+			})
+			.catch(() => {}); // fallback to defaults on error
+	}, []);
 
 	// Fetch menu from backend
 	useEffect(() => {
@@ -131,7 +146,9 @@ const Billing: React.FC = () => {
 	useEffect(() => {
 		if (selectedTable && orderType === "dine-in" && menu.length > 0) {
 			setLoadingOrder(true);
-			apiRequest<any>(`/orders/table/${selectedTable}`, { method: "GET" }, true)
+			const headers = buildAuthHeaders();
+			fetch(`${API_BASE_URL}/orders/table/${selectedTable}`, { headers: headers || {} })
+				.then(res => res.json())
 				.then(data => {
 					if (!data || data.error) {
 						setExistingOrder(null);
@@ -139,6 +156,11 @@ const Billing: React.FC = () => {
 						return;
 					}
 					setExistingOrder(data);
+					// Only pre-fill items if order is still active (not served/completed)
+					if (data.status === 'served' || data.status === 'completed') {
+						setOrderItems([]);
+						return;
+					}
 					// Parse items from existing order
 					const parsedItems: OrderItem[] = data.items.map((itemStr: string) => {
 						// Parse format like "Butter Chicken x1"
@@ -150,17 +172,15 @@ const Billing: React.FC = () => {
 							if (menuItem) {
 								return { id: menuItem.id, name: menuItem.name, price: menuItem.price, qty };
 							}
-							// Item not in menu, still show it with price 0
 							return { id: Date.now() + Math.random(), name: itemName, price: 0, qty };
 						}
 						return { id: Date.now() + Math.random(), name: itemStr, price: 0, qty: 1 };
 					}).filter(Boolean);
 					setOrderItems(parsedItems);
 				})
-				.catch((err: any) => {
+				.catch(() => {
 					setExistingOrder(null);
 					setOrderItems([]);
-					// Don't show error for existing order check - it's not critical
 				})
 				.finally(() => setLoadingOrder(false));
 		} else {
@@ -188,8 +208,9 @@ const Billing: React.FC = () => {
 		});
 	};
 	const subtotal = orderItems.reduce((sum, i) => sum + i.price * i.qty, 0);
-	const tax = Math.round(subtotal * 0.05);
-	const total = subtotal + tax;
+	const tax = Math.round(subtotal * (taxRate / 100));
+	const svc = Math.round(subtotal * (serviceCharge / 100));
+	const total = subtotal + tax + svc;
 	const handlePlaceOrder = async () => {
 		if (!orderItems.length) {
 			toast.error("Please select at least one item before placing order");
@@ -220,23 +241,13 @@ const Billing: React.FC = () => {
 				return;
 			}
 		}
-		// For take-away, require customer details
-		if (orderType === "take-away") {
-			if (!customer.name || customer.name.trim().length < 2) {
-				toast.error("Customer name must be at least 2 characters");
-				return;
-			}
-			if (!customer.phone || !/^\d{10}$/.test(customer.phone.replace(/\D/g, ""))) {
-				toast.error("Phone must be 10 digits");
-				return;
-			}
-		}
+		// For take-away, customer details are optional (name and phone not required)
 		// Get userId from session (logged-in user's actual ID)
 		const userId = getStoredUserId() || 1;
 		
 		try {
-			if (existingOrder) {
-				// Update existing order
+			if (existingOrder && existingOrder.status !== 'served' && existingOrder.status !== 'completed') {
+				// Update existing order only if it's still active
 				const updatedItems = orderItems.map(i => `${i.name} x${i.qty}`);
 				await apiRequest(`/orders/${existingOrder.id}`, {
 					method: "PUT",
@@ -342,7 +353,7 @@ const Billing: React.FC = () => {
 							<div className="text-muted-foreground text-xs sm:text-sm">Welcome to RestroHub! Please select items and complete the order below.</div>
 						</div>
 						<div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-							<span className="bg-orange-100 text-orange-700 px-2 sm:px-3 py-1 rounded-full font-semibold text-xs sm:text-sm truncate">Restaurant: pk cafe</span>
+							<span className="bg-orange-100 text-orange-700 px-2 sm:px-3 py-1 rounded-full font-semibold text-xs sm:text-sm truncate">Restaurant: {getStoredRestaurantName() || "Restaurant"}</span>
 							<span className="bg-orange-100 text-orange-700 px-2 sm:px-3 py-1 rounded-full font-semibold text-xs sm:text-sm flex items-center gap-1 w-fit">KDS <Monitor className="inline-block flex-shrink-0" size={14} /></span>
 						</div>
 					</div>
@@ -399,6 +410,12 @@ const Billing: React.FC = () => {
 										</div>
 									</div>
 								)}
+								{/* Banner when dine-in but no table selected */}
+								{orderType === "dine-in" && !selectedTable && (
+									<div className="mx-0 mb-2 px-3 py-2 bg-orange-50 border border-orange-200 rounded-lg text-xs text-orange-600 text-center">
+										⚠️ Please select a table to add items
+									</div>
+								)}
 								{/* Search Menu */}
 								<div className="flex flex-col gap-2 mt-2 mb-4">
 									<Input
@@ -421,7 +438,7 @@ const Billing: React.FC = () => {
 												<div className="mb-2 text-2xl sm:text-3xl"><UtensilsCrossed className="text-orange-500" /></div>
 												<span className="font-semibold text-xs sm:text-base mb-1 text-center line-clamp-2">{item.name}</span>
 												<Badge className="mb-2 bg-orange-500/90 text-white text-xs">₹{item.price}</Badge>
-												<Button size="sm" onClick={() => addItem(item)} variant="outline" disabled={!item.available} className="text-xs">Add</Button>
+												<Button size="sm" onClick={() => addItem(item)} variant="outline" disabled={!item.available || (orderType === "dine-in" && !selectedTable)} className="text-xs">Add</Button>
 												{!item.available && <span className="text-xs text-red-500 mt-1">Unavailable</span>}
 											</Card>
 										))
@@ -435,7 +452,7 @@ const Billing: React.FC = () => {
 							<CardHeader className="p-3 sm:p-6">
 								<CardTitle className="text-lg sm:text-xl flex items-center gap-2 flex-wrap">
 									<ShoppingCart className="text-orange-500 flex-shrink-0" /> Order Summary
-									{existingOrder && <Badge className="bg-blue-500 text-xs">Editing Order #{existingOrder.id}</Badge>}
+									{existingOrder && existingOrder.status !== 'served' && existingOrder.status !== 'completed' && <Badge className="bg-blue-500 text-xs">Editing Order #{existingOrder.id}</Badge>}
 								</CardTitle>
 							</CardHeader>
 							<CardContent className="p-3 sm:p-6">
@@ -454,7 +471,10 @@ const Billing: React.FC = () => {
 								)}
 								<div className="border-t pt-2 flex flex-col gap-1 mb-4 text-sm">
 									<div className="flex justify-between"><span>Subtotal</span><span>₹{subtotal}</span></div>
-									<div className="flex justify-between"><span>Tax (5%)</span><span>₹{tax}</span></div>
+									<div className="flex justify-between"><span>Tax ({taxRate}%)</span><span>₹{tax}</span></div>
+									{serviceCharge > 0 && (
+										<div className="flex justify-between"><span>Service Charge ({serviceCharge}%)</span><span>₹{svc}</span></div>
+									)}
 									<div className="flex justify-between font-bold text-base sm:text-lg text-orange-700"><span>Total</span><span>₹{total}</span></div>
 								</div>
 								{(orderType === "take-away" || orderType === "delivery") && (
@@ -532,7 +552,7 @@ const Billing: React.FC = () => {
 									</div>
 								)}
 								<Button className="w-full bg-orange-500 hover:bg-orange-600 text-sm" onClick={handlePlaceOrder} disabled={orderItems.length === 0}>
-									{existingOrder ? "Update Order" : "Place Order"}
+									{existingOrder && existingOrder.status !== 'served' && existingOrder.status !== 'completed' ? "Update Order" : "Place Order"}
 								</Button>
 							</CardContent>
 						</Card>
@@ -604,7 +624,7 @@ const Billing: React.FC = () => {
 
 				{/* Footer */}
 				<footer className="w-full text-center py-3 sm:py-4 text-muted-foreground text-xs bg-transparent mt-6 sm:mt-8 px-3">
-					&copy; {new Date().getFullYear()} RestroHub POS &mdash; Powered by pk cafe
+					&copy; {new Date().getFullYear()} RestroHub POS &mdash; Powered by {getStoredRestaurantName() || "RestroHub"}
 				</footer>
 			</div>
 		</DashboardLayout>

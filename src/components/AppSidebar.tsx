@@ -16,6 +16,7 @@ import {
   UserCog,
   ClipboardList,
   Wallet,
+  Settings2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -39,7 +40,7 @@ import { getStoredRestaurantName, buildAuthHeaders } from "@/lib/session";
 const API_BASE_URL = (() => {
   const configured = (import.meta.env.VITE_API_URL || "").trim();
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) return "/api";
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
 // Role-based menu configuration
@@ -83,6 +84,12 @@ const getMenuGroups = (role: string | null) => {
         { title: "Payroll", url: "/payroll", icon: Users, roles: ["admin", "manager"] },
         { title: "Tasks", url: "/tasks", icon: ClipboardList, roles: ["admin", "manager"] },
         { title: "CRM", url: "/crm", icon: UserCog, roles: ["admin", "manager"] },
+      ],
+    },
+    {
+      label: "Config",
+      items: [
+        { title: "Settings", url: "/settings", icon: Settings2, roles: ["admin"] },
       ],
     },
   ];

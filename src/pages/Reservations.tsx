@@ -39,7 +39,7 @@ const API_BASE_URL = (() => {
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
     return "/api";
   }
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
 const statusColor: Record<ReservationStatus, string> = {
@@ -70,6 +70,55 @@ export default function Reservations() {
     guests: "2",
     tableNumber: "",
   });
+
+  const [editReservation, setEditReservation] = useState<Reservation | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "", phone: "", date: "", time: "", guests: "2", tableNumber: "",
+  });
+
+  const openEdit = (r: Reservation) => {
+    setEditReservation(r);
+    setEditForm({ name: r.name, phone: r.phone, date: r.date, time: r.time, guests: String(r.guests), tableNumber: r.tableNumber });
+  };
+
+  const saveEdit = async () => {
+    if (!editReservation) return;
+    const headers = buildAuthHeaders();
+    if (!headers) return;
+    const response = await fetch(`${API_BASE_URL}/reservations/${editReservation.id}`, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({
+        customer_name: editForm.name.trim(),
+        customer_phone: editForm.phone.trim(),
+        reservation_date: editForm.date,
+        reservation_time: editForm.time,
+        guests: Number(editForm.guests),
+        table_number: editForm.tableNumber.trim().toUpperCase(),
+      }),
+    });
+    if (response.ok) {
+      const data = await response.json();
+      setReservations(prev => prev.map(r => r.id === editReservation.id ? toUiReservation(data) : r));
+      setEditReservation(null);
+      toast.success("Reservation updated");
+    } else {
+      toast.error("Unable to update reservation");
+    }
+  };
+
+  const deleteReservation = async (id: number) => {
+    if (!confirm("Delete this reservation?")) return;
+    const headers = buildAuthHeaders();
+    if (!headers) return;
+    const response = await fetch(`${API_BASE_URL}/reservations/${id}`, { method: "DELETE", headers });
+    if (response.ok) {
+      setReservations(prev => prev.filter(r => r.id !== id));
+      toast.success("Reservation deleted");
+    } else {
+      toast.error("Unable to delete reservation");
+    }
+  };
 
   const filteredReservations = useMemo(
     () => reservations.filter((reservation) => filterStatus === "all" || reservation.status === filterStatus),
@@ -384,13 +433,35 @@ export default function Reservations() {
                       <SelectItem value="cancelled">Cancelled</SelectItem>
                     </SelectContent>
                   </Select>
+                  <Button variant="outline" size="sm" onClick={() => openEdit(reservation)}>Edit</Button>
+                  <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => void deleteReservation(reservation.id)}>Delete</Button>
                 </div>
               </div>
             ))}
           </CardContent>
         </Card>
       </div>
+
+      {editReservation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+            <button className="absolute top-2 right-2 text-gray-500 hover:text-black text-xl" onClick={() => setEditReservation(null)}>x</button>
+            <h2 className="text-lg font-bold mb-4">Edit Reservation</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Name</Label><Input value={editForm.name} onChange={e => setEditForm(p => ({...p, name: e.target.value}))} /></div>
+              <div><Label>Phone</Label><Input value={editForm.phone} onChange={e => setEditForm(p => ({...p, phone: e.target.value}))} /></div>
+              <div><Label>Table</Label><Input value={editForm.tableNumber} onChange={e => setEditForm(p => ({...p, tableNumber: e.target.value}))} /></div>
+              <div><Label>Guests</Label><Input type="number" min={1} value={editForm.guests} onChange={e => setEditForm(p => ({...p, guests: e.target.value}))} /></div>
+              <div><Label>Date</Label><Input type="date" value={editForm.date} onChange={e => setEditForm(p => ({...p, date: e.target.value}))} /></div>
+              <div><Label>Time</Label><Input type="time" value={editForm.time} onChange={e => setEditForm(p => ({...p, time: e.target.value}))} /></div>
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button className="flex-1 gradient-warm text-primary-foreground" onClick={() => void saveEdit()}>Save Changes</Button>
+              <Button variant="outline" className="flex-1" onClick={() => setEditReservation(null)}>Cancel</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 }
-

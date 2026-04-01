@@ -1,31 +1,31 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { saveAuthSession } from "@/lib/session";
 import { ChefHat, Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 const API_BASE_URL = (() => {
   const configured = (import.meta.env.VITE_API_URL || "").trim();
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) return "/api";
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
 const foodItems = [
-  { emoji: "🍔", size: 44, left: 4,  delay: 0,   duration: 7,   wobble: 1 },
-  { emoji: "🍕", size: 40, left: 11, delay: 1.5, duration: 8,   wobble: 2 },
-  { emoji: "🍟", size: 38, left: 19, delay: 0.8, duration: 6.5, wobble: 1 },
-  { emoji: "🧃", size: 34, left: 27, delay: 2.2, duration: 7.5, wobble: 3 },
-  { emoji: "🍜", size: 42, left: 35, delay: 0.3, duration: 6,   wobble: 2 },
-  { emoji: "🍰", size: 38, left: 44, delay: 3,   duration: 8.5, wobble: 1 },
-  { emoji: "🍣", size: 40, left: 53, delay: 1.8, duration: 7,   wobble: 3 },
-  { emoji: "🥤", size: 36, left: 61, delay: 0.6, duration: 6.5, wobble: 2 },
-  { emoji: "🍩", size: 42, left: 69, delay: 2.5, duration: 7.5, wobble: 1 },
-  { emoji: "🌮", size: 38, left: 77, delay: 1.2, duration: 6,   wobble: 3 },
-  { emoji: "🍦", size: 34, left: 85, delay: 0.4, duration: 8,   wobble: 2 },
-  { emoji: "🍟", size: 40, left: 8,  delay: 4,   duration: 9,   wobble: 2 },
-  { emoji: "🥗", size: 38, left: 48, delay: 2.8, duration: 7.5, wobble: 3 },
-  { emoji: "🍪", size: 36, left: 73, delay: 1,   duration: 6.5, wobble: 1 },
-  { emoji: "🍷", size: 34, left: 16, delay: 3.2, duration: 8,   wobble: 2 },
-  { emoji: "🥩", size: 40, left: 58, delay: 0.9, duration: 7,   wobble: 3 },
-  { emoji: "🍟", size: 42, left: 88, delay: 2,   duration: 6,   wobble: 1 },
+  { emoji: "??", size: 44, left: 4,  delay: 0,   duration: 7,   wobble: 1 },
+  { emoji: "??", size: 40, left: 11, delay: 1.5, duration: 8,   wobble: 2 },
+  { emoji: "??", size: 38, left: 19, delay: 0.8, duration: 6.5, wobble: 1 },
+  { emoji: "??", size: 34, left: 27, delay: 2.2, duration: 7.5, wobble: 3 },
+  { emoji: "??", size: 42, left: 35, delay: 0.3, duration: 6,   wobble: 2 },
+  { emoji: "??", size: 38, left: 44, delay: 3,   duration: 8.5, wobble: 1 },
+  { emoji: "??", size: 40, left: 53, delay: 1.8, duration: 7,   wobble: 3 },
+  { emoji: "??", size: 36, left: 61, delay: 0.6, duration: 6.5, wobble: 2 },
+  { emoji: "??", size: 42, left: 69, delay: 2.5, duration: 7.5, wobble: 1 },
+  { emoji: "??", size: 38, left: 77, delay: 1.2, duration: 6,   wobble: 3 },
+  { emoji: "??", size: 34, left: 85, delay: 0.4, duration: 8,   wobble: 2 },
+  { emoji: "??", size: 40, left: 8,  delay: 4,   duration: 9,   wobble: 2 },
+  { emoji: "??", size: 38, left: 48, delay: 2.8, duration: 7.5, wobble: 3 },
+  { emoji: "??", size: 36, left: 73, delay: 1,   duration: 6.5, wobble: 1 },
+  { emoji: "??", size: 34, left: 16, delay: 3.2, duration: 8,   wobble: 2 },
+  { emoji: "??", size: 40, left: 58, delay: 0.9, duration: 7,   wobble: 3 },
+  { emoji: "??", size: 42, left: 88, delay: 2,   duration: 6,   wobble: 1 },
 ];
 
 const stars = Array.from({ length: 60 }, (_, i) => ({
@@ -141,7 +141,7 @@ const AdminLogin = () => {
 
             {error && (
               <div style={{ marginBottom: 20, padding: "12px 16px", borderRadius: 12, background: "#fff5f5", border: "1.5px solid #fed7d7", color: "#c53030", fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
-                ⚠️ {error}
+                ?? {error}
               </div>
             )}
 
@@ -161,7 +161,7 @@ const AdminLogin = () => {
                 <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#666", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>Password</label>
                 <div style={{ position: "relative" }}>
                   <Lock style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", width: 17, height: 17, color: "#ccc" }} />
-                  <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••"
+                  <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required placeholder="��������"
                     style={{ width: "100%", paddingLeft: 44, paddingRight: 48, paddingTop: 14, paddingBottom: 14, borderRadius: 12, border: "2px solid #f0f0f0", background: "#fafafa", fontSize: 14, color: "#1a1a2e", outline: "none", boxSizing: "border-box", transition: "all 0.25s" }}
                     onFocus={e => { e.target.style.borderColor = "#e53935"; e.target.style.background = "#fff"; e.target.style.boxShadow = "0 0 0 4px rgba(229,57,53,0.1)"; }}
                     onBlur={e => { e.target.style.borderColor = "#f0f0f0"; e.target.style.background = "#fafafa"; e.target.style.boxShadow = "none"; }} />
@@ -178,12 +178,12 @@ const AdminLogin = () => {
                 onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 10px 30px rgba(229,57,53,0.45)"; }}>
                 {loading
                   ? <><div style={{ width: 20, height: 20, border: "2.5px solid white", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} /><span>Signing in...</span></>
-                  : <span>Sign In →</span>}
+                  : <span>Sign In ?</span>}
               </button>
             </form>
 
             <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 24 }}>
-              {["🔒 Secure", "⚡ Fast", "📱 Mobile Ready"].map(tag => (
+              {["?? Secure", "? Fast", "?? Mobile Ready"].map(tag => (
                 <span key={tag} style={{ fontSize: 11, color: "#bbb", fontWeight: 500 }}>{tag}</span>
               ))}
             </div>

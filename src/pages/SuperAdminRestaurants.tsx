@@ -18,7 +18,7 @@ const API_BASE_URL = (() => {
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
     return "/api";
   }
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
 type Restaurant = {
@@ -32,6 +32,7 @@ type Restaurant = {
   logo?: string;
   subscriptionStartDate?: string;
   subscriptionExpiryDate?: string;
+  user_count?: number;
 };
 
 function getHealthTone(score: number) {
@@ -439,7 +440,7 @@ export default function SuperAdminRestaurants() {
                 ) : (
                   filteredRestaurants.map((restaurant) => {
                     const healthScore = estimateHealth(restaurant);
-                    const activeUsers = estimateUsers(restaurant);
+                    const activeUsers = restaurant.user_count ?? 0;
                     return (
                       <tr key={restaurant.id} className="border-t border-slate-100">
                         <td className="px-4 py-3">

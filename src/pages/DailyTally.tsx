@@ -14,7 +14,7 @@ const API_BASE_URL = (() => {
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
     return "/api";
   }
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
 type Order = {
@@ -102,19 +102,19 @@ export default function DailyTally() {
     const paidOrders = filteredOrders.filter((o) => o.paymentStatus === "paid" || o.status === "completed");
     const unpaidOrders = filteredOrders.filter((o) => o.paymentStatus !== "paid" && o.status !== "completed");
 
-    const totalRevenue = paidOrders.reduce((sum, o) => sum + o.total, 0);
-    const unpaidAmount = unpaidOrders.reduce((sum, o) => sum + o.total, 0);
+    const totalRevenue = paidOrders.reduce((sum, o) => sum + Number(o.total), 0);
+    const unpaidAmount = unpaidOrders.reduce((sum, o) => sum + Number(o.total), 0);
 
     const paymentMethods = {
-      cash: paidOrders.filter((o) => o.paymentMethod === "cash").reduce((sum, o) => sum + o.total, 0),
-      card: paidOrders.filter((o) => o.paymentMethod === "card").reduce((sum, o) => sum + o.total, 0),
-      upi: paidOrders.filter((o) => o.paymentMethod === "upi").reduce((sum, o) => sum + o.total, 0),
+      cash: paidOrders.filter((o) => o.paymentMethod === "cash").reduce((sum, o) => sum + Number(o.total), 0),
+      card: paidOrders.filter((o) => o.paymentMethod === "card").reduce((sum, o) => sum + Number(o.total), 0),
+      upi: paidOrders.filter((o) => o.paymentMethod === "upi").reduce((sum, o) => sum + Number(o.total), 0),
     };
 
     const orderTypes = {
-      dineIn: paidOrders.filter((o) => o.orderType === "dine-in").reduce((sum, o) => sum + o.total, 0),
-      takeaway: paidOrders.filter((o) => o.orderType === "take-away").reduce((sum, o) => sum + o.total, 0),
-      delivery: paidOrders.filter((o) => o.orderType === "delivery").reduce((sum, o) => sum + o.total, 0),
+      dineIn: paidOrders.filter((o) => o.orderType === "dine-in").reduce((sum, o) => sum + Number(o.total), 0),
+      takeaway: paidOrders.filter((o) => o.orderType === "take-away").reduce((sum, o) => sum + Number(o.total), 0),
+      delivery: paidOrders.filter((o) => o.orderType === "delivery").reduce((sum, o) => sum + Number(o.total), 0),
     };
 
     return {

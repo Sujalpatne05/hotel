@@ -13,7 +13,7 @@ const API_BASE_URL = (() => {
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
     return "/api";
   }
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
 type Order = {
@@ -76,13 +76,13 @@ export default function PaymentsOverview() {
     };
 
     orders.forEach((order) => {
-      stats.all.total += order.total;
+      stats.all.total += Number(order.total);
       stats.all.count += 1;
       stats.all.orders.push(order);
 
       const method = (order.paymentMethod || "cash").toLowerCase() as PaymentMethod;
       if (method !== "all" && stats[method]) {
-        stats[method].total += order.total;
+        stats[method].total += Number(order.total);
         stats[method].count += 1;
         stats[method].orders.push(order);
       }
@@ -92,7 +92,7 @@ export default function PaymentsOverview() {
   }, [orders]);
 
   const currentStats = paymentStats[selectedPaymentMethod];
-  const totalRevenue = Object.values(paymentStats).reduce((sum, stat) => sum + stat.total, 0);
+  const totalRevenue = paymentStats.all.total;
 
   const getPaymentIcon = (method: PaymentMethod) => {
     switch (method) {
@@ -326,7 +326,7 @@ export default function PaymentsOverview() {
                           )}
                         </td>
                         <td className="py-2 sm:py-3 px-2 sm:px-4 text-right font-bold text-gray-900 text-xs sm:text-sm">
-                          ₹{order.total.toLocaleString("en-IN")}
+                          ₹{Number(order.total).toLocaleString("en-IN")}
                         </td>
                         <td className="py-2 sm:py-3 px-2 sm:px-4 text-center hidden lg:table-cell">
                           <Badge className={`${getStatusColor(order.status)} text-xs`}>
@@ -422,7 +422,7 @@ export default function PaymentsOverview() {
                 <div className="bg-gradient-to-r from-orange-50 to-yellow-50 p-3 sm:p-4 rounded-lg border-2 border-orange-200">
                   <div className="flex justify-between items-center">
                     <span className="text-base sm:text-lg font-semibold text-gray-700">Total Amount</span>
-                    <span className="text-2xl sm:text-3xl font-bold text-orange-600">₹{selectedOrder.total.toLocaleString("en-IN")}</span>
+                    <span className="text-2xl sm:text-3xl font-bold text-orange-600">₹{Number(selectedOrder.total).toLocaleString("en-IN")}</span>
                   </div>
                 </div>
 

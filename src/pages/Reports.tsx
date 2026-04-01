@@ -86,7 +86,7 @@ const Reports = () => {
     };
     orders.forEach((order) => {
       const type = order.orderType || "dine-in";
-      typeRevenue[type] = (typeRevenue[type] || 0) + order.total;
+      typeRevenue[type] = (typeRevenue[type] || 0) + Number(order.total);
     });
     return Object.entries(typeRevenue).map(([name, value]) => ({
       name: name === "dine-in" ? "Dine-in" : name === "take-away" ? "Takeaway" : "Delivery",
@@ -100,7 +100,7 @@ const Reports = () => {
     orders.forEach((order) => {
       const method = order.paymentStatus === "paid" ? (order.paymentStatus || "cash") : "unpaid";
       if (method !== "unpaid") {
-        methods[method] = (methods[method] || 0) + order.total;
+        methods[method] = (methods[method] || 0) + Number(order.total);
       }
     });
     return Object.entries(methods).map(([name, value]) => ({
@@ -115,7 +115,7 @@ const Reports = () => {
     orders.forEach((order) => {
       if (order.created_at) {
         const date = new Date(order.created_at).toLocaleDateString("en-IN");
-        days[date] = (days[date] || 0) + order.total;
+        days[date] = (days[date] || 0) + Number(order.total);
       }
     });
     return Object.entries(days)
@@ -289,12 +289,13 @@ const Reports = () => {
                   <CardContent>
                   <ResponsiveContainer width="100%" height={250}>
                       <PieChart>
-                        <Pie data={revenueByType} cx="50%" cy="50%" labelLine={false} label={({ name, value }) => `${name}: ₹${value}`} outerRadius={70} fill="#8884d8" dataKey="value">
+                        <Pie data={revenueByType} cx="50%" cy="50%" labelLine={false} outerRadius={80} fill="#8884d8" dataKey="value">
                           {revenueByType.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
                         <Tooltip formatter={(value) => `₹${value}`} />
+                        <Legend verticalAlign="bottom" height={36} formatter={(value, entry: any) => `${value}: ₹${entry.payload.value}`} />
                       </PieChart>
                     </ResponsiveContainer>
                   </CardContent>
@@ -578,7 +579,7 @@ const Reports = () => {
                             <td className="py-3 px-4 text-center">
                               <Badge className="bg-gray-100 text-gray-800">{order.paymentStatus === "paid" ? "Paid" : "Unpaid"}</Badge>
                             </td>
-                            <td className="py-3 px-4 text-right font-bold">₹{order.total.toLocaleString("en-IN")}</td>
+                            <td className="py-3 px-4 text-right font-bold">₹{Number(order.total).toLocaleString("en-IN")}</td>
                             <td className="py-3 px-4 text-center">
                               <Badge
                                 className={

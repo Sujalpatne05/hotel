@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { buildAuthHeaders, clearAuthSession, isAuthError } from "@/lib/session";
+import { buildAuthHeaders, clearAuthSession, isAuthError, getStoredRestaurantName } from "@/lib/session";
 import {
   IndianRupee, ShoppingCart, Users, TrendingUp,
   ChefHat, AlertTriangle, Clock, CheckCircle,
@@ -14,7 +14,7 @@ import {
 const API_BASE_URL = (() => {
   const configured = (import.meta.env.VITE_API_URL || "").trim();
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) return "/api";
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
 export default function Dashboard() {
@@ -24,6 +24,7 @@ export default function Dashboard() {
   const [tables, setTables] = useState<any[]>([]);
   const [inventory, setInventory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [restaurantName, setRestaurantName] = useState<string>("");
 
   useEffect(() => {
     const load = async () => {
@@ -31,21 +32,25 @@ export default function Dashboard() {
         const headers = buildAuthHeaders();
         if (!headers) { clearAuthSession(); navigate("/admin-login"); return; }
 
-        const [ordersRes, tablesRes, inventoryRes] = await Promise.all([
+        const [ordersRes, tablesRes, inventoryRes, profileRes] = await Promise.all([
           fetch(`${API_BASE_URL}/orders`, { headers }),
           fetch(`${API_BASE_URL}/tables`, { headers }),
           fetch(`${API_BASE_URL}/inventory`, { headers }),
+          fetch(`${API_BASE_URL}/profile`, { headers }),
         ]);
 
         if (isAuthError(ordersRes.status)) { clearAuthSession(); navigate("/admin-login"); return; }
 
-        const [ordersData, tablesData, inventoryData] = await Promise.all([
-          ordersRes.json(), tablesRes.json(), inventoryRes.json(),
+        const [ordersData, tablesData, inventoryData, profileData] = await Promise.all([
+          ordersRes.json(), tablesRes.json(), inventoryRes.json(), profileRes.json(),
         ]);
 
         setOrders(Array.isArray(ordersData) ? ordersData : []);
         setTables(Array.isArray(tablesData) ? tablesData : []);
         setInventory(Array.isArray(inventoryData) ? inventoryData : []);
+        if (profileData?.restaurantName) {
+          setRestaurantName(profileData.restaurantName);
+        }
       } catch (e) {
         // Dashboard load error
       } finally {
@@ -88,7 +93,7 @@ export default function Dashboard() {
       text: o.orderType === "dine-in"
         ? `Table ${o.table_number} placed order`
         : `${o.orderType === "take-away" ? "Takeaway" : "Delivery"} order #${o.id}`,
-      amount: o.total,
+      amount: Number(o.total),
       status: o.status,
       paid: o.paymentStatus === "paid",
     }));
@@ -121,7 +126,7 @@ export default function Dashboard() {
         <div className="rounded-2xl bg-gradient-to-br from-orange-500 to-orange-600 text-white p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold mb-1">Welcome back, SUJAL CAFE!</h1>
+              <h1 className="text-2xl sm:text-3xl font-extrabold mb-1">Welcome back, {restaurantName || getStoredRestaurantName() || "Restaurant"}!</h1>
               <p className="text-orange-100 text-sm">Here's your restaurant at a glance — {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
             </div>
           </div>

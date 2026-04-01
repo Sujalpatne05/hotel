@@ -4,18 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Edit, Trash2, Star } from "lucide-react";
+import { Plus, Search, Edit, Trash2, Star, Upload, Download, X, CheckCircle, AlertCircle } from "lucide-react";
 import React, { Fragment, useEffect, useState } from "react";
 import { Transition, Dialog } from "@headlessui/react";
 import { useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
 
-const categories = ["All", "Starters", "Main Course", "Breads", "Rice", "Desserts", "Beverages"];
+const DEFAULT_CATEGORIES = ["Starters", "Main Course", "Breads", "Rice", "Desserts", "Beverages"];
 const API_BASE_URL = (() => {
   const configured = (import.meta.env.VITE_API_URL || "").trim();
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) {
     return "/api";
   }
-  return configured || (typeof window !== "undefined" && window.location.hostname !== "localhost" ? "/api" : "http://localhost:5000");
+  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
 })();
 
 type MenuItem = {
@@ -41,11 +42,27 @@ const MenuManagement = () => {
   // Add missing state for image upload and preview
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [saving, setSaving] = useState(false);
   const [editItemId, setEditItemId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newItem, setNewItem] = useState<MenuItemForm>({ name: "", category: "", price: "", available: true, image_url: "" });
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [error, setError] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+
+  // Import state
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importPreview, setImportPreview] = useState<any[]>([]);
+  const [importResult, setImportResult] = useState<{ inserted: number; skipped: number; errors: any[] } | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  // Dynamic categories — only show categories that have actual menu items
+  // DEFAULT_CATEGORIES are only used as autocomplete suggestions, not as tabs
+  const dynamicCategories = React.useMemo(() => {
+    const fromItems = menuItems.map(i => i.category).filter(Boolean);
+    const unique = Array.from(new Set(fromItems));
+    return ["All", ...unique];
+  }, [menuItems]);
 
   const goToLogin = (message = "Session expired. Please login again.") => {
     setError(message);
@@ -181,22 +198,40 @@ const MenuManagement = () => {
     }
     
     let imageUrl = newItem.image_url || "";
+    // If a file was selected, convert to base64 and let the backend upload to Cloudinary
     if (imageFile) {
-      imageUrl = await uploadImage(imageFile);
+      try {
+        setSaving(true);
+        imageUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = e => resolve(e.target?.result as string);
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(imageFile);
+        });
+      } catch (err: any) {
+        setError(err?.message || "Failed to read image file");
+        setSaving(false);
+        return;
+      }
     }
-    const payload = {
+    const payload: any = {
       name: newItem.name.trim(),
       category: newItem.category.trim(),
       price: Number(newItem.price),
       available: newItem.available,
-      image_url: imageUrl,
     };
+    // Only include image_url if a new image was uploaded or a URL was manually set
+    if (imageUrl) {
+      payload.image_url = imageUrl;
+    }
 
     try {
+      setSaving(true);
       setError("");
       const headers = getAuthHeaders();
       if (!headers) {
         goToLogin("Please login to manage menu items.");
+        setSaving(false);
         return;
       }
       const isEdit = editItemId !== null;
@@ -216,6 +251,7 @@ const MenuManagement = () => {
       }
       if (!response.ok) {
         setError(data?.error || "Unable to save menu item.");
+        setSaving(false);
         return;
       }
 
@@ -226,10 +262,98 @@ const MenuManagement = () => {
         setMenuItems((prev) => [...prev, savedItem]);
       }
       setNewItem({ name: "", category: "", price: "", available: true, image_url: "" });
+      setImageFile(null);
+      setImagePreview("");
       setEditItemId(null);
       handleCloseModal();
     } catch {
       setError("Unable to connect to backend.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // CSV template download
+  const downloadTemplate = () => {
+    const csv = `name,category,price,description,available,image_url\nButter Chicken,Main Course,350,Creamy tomato gravy,true,\nGarlic Naan,Breads,60,,true,\nGulab Jamun,Desserts,120,,true,`;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'menu_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Parse CSV or Excel file
+  const handleCSVFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+
+    if (isExcel) {
+      // Parse Excel
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const data = new Uint8Array(event.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+        // Normalize keys to lowercase
+        const normalized = rows.map(row => {
+          const obj: any = {};
+          Object.keys(row).forEach(k => { obj[k.toLowerCase().trim()] = row[k]; });
+          return obj;
+        }).filter(row => row.name);
+        setImportPreview(normalized);
+        setImportResult(null);
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      // Parse CSV
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result as string;
+        const lines = text.trim().split('\n');
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/"/g, ''));
+        const rows = lines.slice(1).map(line => {
+          const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+          const obj: any = {};
+          headers.forEach((h, i) => { obj[h] = values[i] || ''; });
+          return obj;
+        }).filter(row => row.name);
+        setImportPreview(rows);
+        setImportResult(null);
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // Submit bulk import
+  const handleBulkImport = async () => {
+    if (importPreview.length === 0) return;
+    setImporting(true);
+    try {
+      const headers = getAuthHeaders();
+      if (!headers) return;
+      const response = await fetch(`${API_BASE_URL}/menu/bulk`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ items: importPreview }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setImportResult({ inserted: data.inserted, skipped: data.skipped, errors: data.errors });
+        setImportPreview([]);
+        await loadMenuItems();
+      } else {
+        setError(data?.error || 'Import failed');
+      }
+    } catch {
+      setError('Unable to connect to backend');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -269,11 +393,16 @@ const MenuManagement = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">Menu Management</h1>
-            <p className="text-muted-foreground">{menuItems.length} items across {categories.length - 1} categories</p>
+            <p className="text-muted-foreground">{menuItems.length} items across {dynamicCategories.length - 1} categories</p>
           </div>
-          <Button className="gradient-warm text-primary-foreground gap-2" onClick={() => handleOpenModal()}>
-            <Plus className="h-4 w-4" /> Add Item
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => { setShowImportModal(true); setImportPreview([]); setImportResult(null); }}>
+              <Upload className="h-4 w-4" /> Import CSV
+            </Button>
+            <Button className="gradient-warm text-primary-foreground gap-2" onClick={() => handleOpenModal()}>
+              <Plus className="h-4 w-4" /> Add Item
+            </Button>
+          </div>
           <Transition appear show={isModalOpen} as={Fragment}>
             <Dialog as="div" className="relative z-50" onClose={handleCloseModal}>
               <Transition.Child
@@ -299,7 +428,7 @@ const MenuManagement = () => {
                 >
                   <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
                     <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 mb-4">
-                      Add New Menu Item
+                      {editItemId ? "Edit Menu Item" : "Add New Menu Item"}
                     </Dialog.Title>
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div>
@@ -308,12 +437,22 @@ const MenuManagement = () => {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Category</label>
-                        <select name="category" value={newItem.category} onChange={handleChange} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary">
-                          <option value="">Select category</option>
-                          {categories.filter((cat) => cat !== "All").map((cat) => (
-                            <option key={cat} value={cat}>{cat}</option>
+                        <input
+                          type="text"
+                          name="category"
+                          value={newItem.category}
+                          onChange={handleChange}
+                          required
+                          placeholder="e.g. Starters, Main Course, or type custom..."
+                          list="category-suggestions"
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2"
+                        />
+                        <datalist id="category-suggestions">
+                          {dynamicCategories.filter(c => c !== "All").map(cat => (
+                            <option key={cat} value={cat} />
                           ))}
-                        </select>
+                        </datalist>
+                        <p className="text-xs text-gray-400 mt-1">Select from suggestions or type a new category</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700">Price</label>
@@ -335,7 +474,9 @@ const MenuManagement = () => {
                       </div>
                       <div className="flex justify-end gap-2 mt-4">
                         <button type="button" onClick={handleCloseModal} className="px-4 py-2 bg-gray-200 rounded">Cancel</button>
-                        <button type="submit" className="px-4 py-2 bg-primary text-white rounded">Add Item</button>
+                        <button type="submit" disabled={saving} className="px-4 py-2 bg-primary text-white rounded disabled:opacity-60">
+                          {saving ? (imageFile ? "Uploading..." : "Saving...") : (editItemId ? "Update Item" : "Add Item")}
+                        </button>
                       </div>
                     </form>
                   </Dialog.Panel>
@@ -352,16 +493,16 @@ const MenuManagement = () => {
           <Input placeholder="Search menu items..." className="pl-9" />
         </div>
 
-        <Tabs defaultValue="All">
+        <Tabs value={activeCategory} onValueChange={setActiveCategory}>
           <TabsList className="flex-wrap h-auto gap-1">
-            {categories.map((cat) => (
+            {dynamicCategories.map((cat) => (
               <TabsTrigger key={cat} value={cat} className="text-xs">
                 {cat}
               </TabsTrigger>
             ))}
           </TabsList>
 
-          {categories.map((cat) => (
+          {dynamicCategories.map((cat) => (
             <TabsContent key={cat} value={cat}>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {menuItems
@@ -369,8 +510,8 @@ const MenuManagement = () => {
                   .map((item) => (
                     <Card key={item.id} className="shadow-card hover:shadow-elevated transition-shadow animate-scale-in">
                       <CardContent className="p-4">
-                        {item.image_url && (
-                          <img src={item.image_url} alt={item.name} className="rounded-lg w-full h-40 object-cover mb-2" />
+                        {item.image_url && (item.image_url.startsWith('http') || item.image_url.startsWith('data:')) && (
+                          <img src={item.image_url} alt={item.name} className="rounded-lg w-full h-40 object-cover mb-2" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                         )}
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
@@ -408,6 +549,87 @@ const MenuManagement = () => {
           ))}
         </Tabs>
       </div>
+
+      {/* Import CSV Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b">
+              <h2 className="text-lg font-bold">Import Menu from CSV</h2>
+              <button onClick={() => setShowImportModal(false)}><X size={20} /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              {/* Step 1: Download template */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm font-semibold text-blue-800 mb-2">Step 1: Download the template</p>
+                <p className="text-xs text-blue-600 mb-3">Fill in your menu items in the CSV. Columns: name, category, price, description, available, image_url</p>
+                <Button size="sm" variant="outline" onClick={downloadTemplate} className="gap-2">
+                  <Download size={14} /> Download Template
+                </Button>
+              </div>
+
+              {/* Step 2: Upload CSV */}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                <p className="text-sm font-semibold text-gray-700 mb-2">Step 2: Upload your filled CSV or Excel file</p>
+                <input type="file" accept=".csv,.xlsx,.xls" onChange={handleCSVFile} className="text-sm" />
+                <p className="text-xs text-gray-400 mt-1">Supports .csv, .xlsx, .xls</p>
+              </div>
+
+              {/* Preview */}
+              {importPreview.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">{importPreview.length} items ready to import:</p>
+                  <div className="overflow-x-auto border rounded-lg">
+                    <table className="w-full text-xs">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left">Name</th>
+                          <th className="px-3 py-2 text-left">Category</th>
+                          <th className="px-3 py-2 text-left">Price</th>
+                          <th className="px-3 py-2 text-left">Available</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {importPreview.slice(0, 10).map((row, i) => (
+                          <tr key={i} className="border-t">
+                            <td className="px-3 py-2">{row.name}</td>
+                            <td className="px-3 py-2">{row.category}</td>
+                            <td className="px-3 py-2">₹{row.price}</td>
+                            <td className="px-3 py-2">{row.available !== 'false' ? 'Yes' : 'No'}</td>
+                          </tr>
+                        ))}
+                        {importPreview.length > 10 && (
+                          <tr><td colSpan={4} className="px-3 py-2 text-gray-400">...and {importPreview.length - 10} more</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                  <Button className="mt-3 w-full gradient-warm text-primary-foreground" onClick={handleBulkImport} disabled={importing}>
+                    {importing ? 'Importing...' : `Import ${importPreview.length} Items`}
+                  </Button>
+                </div>
+              )}
+
+              {/* Result */}
+              {importResult && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg p-3">
+                    <CheckCircle size={16} />
+                    <span className="text-sm font-semibold">{importResult.inserted} items imported successfully</span>
+                  </div>
+                  {importResult.skipped > 0 && (
+                    <div className="flex items-center gap-2 text-orange-700 bg-orange-50 border border-orange-200 rounded-lg p-3">
+                      <AlertCircle size={16} />
+                      <span className="text-sm">{importResult.skipped} rows skipped (missing name or invalid price)</span>
+                    </div>
+                  )}
+                  <Button className="w-full" onClick={() => setShowImportModal(false)}>Done</Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };
@@ -433,6 +655,7 @@ const uploadImage = async (file: File): Promise<string> => {
         });
         if (!res.ok) throw new Error('Image upload failed');
         const data = await res.json();
+        if (!data.url || !data.url.startsWith('http')) throw new Error('Image upload failed — invalid URL returned');
         resolve(data.url);
       } catch (err) {
         reject(err);
