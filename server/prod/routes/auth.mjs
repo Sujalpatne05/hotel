@@ -27,6 +27,14 @@ router.post('/auth/login', async (req, res) => {
 
     if (role && user.role !== role) return res.status(401).json({ error: 'Invalid credentials' });
 
+    // Check if restaurant is active (for non-superadmin users)
+    if (user.restaurant_id && user.role !== 'superadmin') {
+      const restCheck = await query(`SELECT status FROM restaurants WHERE id=$1`, [user.restaurant_id]);
+      if (restCheck.rows[0] && restCheck.rows[0].status === 'Inactive') {
+        return res.status(403).json({ error: 'Your restaurant account has been deactivated. Please contact support.' });
+      }
+    }
+
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, restaurantId: user.restaurant_id },
       process.env.JWT_SECRET,
