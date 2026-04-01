@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+ï»¿import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle, Building, CreditCard, Users, BarChart2,
@@ -193,7 +193,7 @@ export default function SuperAdminDashboard() {
                     <tr key={r.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4 font-semibold text-gray-900">{r.name}</td>
                       <td className="py-3 px-4 text-gray-600">{r.owner}</td>
-                      <td className="py-3 px-4 text-gray-600">{r.city || "—"}</td>
+                      <td className="py-3 px-4 text-gray-600">{r.city || "ï¿½"}</td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">{r.plan || "Standard"}</span>
                       </td>
