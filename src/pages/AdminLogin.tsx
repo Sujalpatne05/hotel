@@ -1,31 +1,31 @@
 import React, { useState, useEffect } from "react";
 import { saveAuthSession } from "@/lib/session";
-import { ChefHat, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { ChefHat, Eye, EyeOff } from "lucide-react";
 
 const API_BASE_URL = (() => {
   const configured = (import.meta.env.VITE_API_URL || "").trim();
   if (typeof window !== "undefined" && window.location.protocol === "https:" && configured.startsWith("http://")) return "/api";
-  return configured || (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") ? "http://localhost:5001" : "/api");
+  return configured || "http://localhost:5000";
 })();
 
 const foodItems = [
-  { emoji: "??", size: 44, left: 4,  delay: 0,   duration: 7,   wobble: 1 },
-  { emoji: "??", size: 40, left: 11, delay: 1.5, duration: 8,   wobble: 2 },
-  { emoji: "??", size: 38, left: 19, delay: 0.8, duration: 6.5, wobble: 1 },
-  { emoji: "??", size: 34, left: 27, delay: 2.2, duration: 7.5, wobble: 3 },
-  { emoji: "??", size: 42, left: 35, delay: 0.3, duration: 6,   wobble: 2 },
-  { emoji: "??", size: 38, left: 44, delay: 3,   duration: 8.5, wobble: 1 },
-  { emoji: "??", size: 40, left: 53, delay: 1.8, duration: 7,   wobble: 3 },
-  { emoji: "??", size: 36, left: 61, delay: 0.6, duration: 6.5, wobble: 2 },
-  { emoji: "??", size: 42, left: 69, delay: 2.5, duration: 7.5, wobble: 1 },
-  { emoji: "??", size: 38, left: 77, delay: 1.2, duration: 6,   wobble: 3 },
-  { emoji: "??", size: 34, left: 85, delay: 0.4, duration: 8,   wobble: 2 },
-  { emoji: "??", size: 40, left: 8,  delay: 4,   duration: 9,   wobble: 2 },
-  { emoji: "??", size: 38, left: 48, delay: 2.8, duration: 7.5, wobble: 3 },
-  { emoji: "??", size: 36, left: 73, delay: 1,   duration: 6.5, wobble: 1 },
-  { emoji: "??", size: 34, left: 16, delay: 3.2, duration: 8,   wobble: 2 },
-  { emoji: "??", size: 40, left: 58, delay: 0.9, duration: 7,   wobble: 3 },
-  { emoji: "??", size: 42, left: 88, delay: 2,   duration: 6,   wobble: 1 },
+  { emoji: "🍔", size: 44, left: 4,  delay: 0,   duration: 7,   wobble: 1 },
+  { emoji: "🍕", size: 40, left: 11, delay: 1.5, duration: 8,   wobble: 2 },
+  { emoji: "🍟", size: 38, left: 19, delay: 0.8, duration: 6.5, wobble: 1 },
+  { emoji: "🧃", size: 34, left: 27, delay: 2.2, duration: 7.5, wobble: 3 },
+  { emoji: "🍜", size: 42, left: 35, delay: 0.3, duration: 6,   wobble: 2 },
+  { emoji: "🍰", size: 38, left: 44, delay: 3,   duration: 8.5, wobble: 1 },
+  { emoji: "🍣", size: 40, left: 53, delay: 1.8, duration: 7,   wobble: 3 },
+  { emoji: "🥤", size: 36, left: 61, delay: 0.6, duration: 6.5, wobble: 2 },
+  { emoji: "🍩", size: 42, left: 69, delay: 2.5, duration: 7.5, wobble: 1 },
+  { emoji: "🌮", size: 38, left: 77, delay: 1.2, duration: 6,   wobble: 3 },
+  { emoji: "🍦", size: 34, left: 85, delay: 0.4, duration: 8,   wobble: 2 },
+  { emoji: "🍟", size: 40, left: 8,  delay: 4,   duration: 9,   wobble: 2 },
+  { emoji: "🥗", size: 38, left: 48, delay: 2.8, duration: 7.5, wobble: 3 },
+  { emoji: "🍪", size: 36, left: 73, delay: 1,   duration: 6.5, wobble: 1 },
+  { emoji: "🍷", size: 34, left: 16, delay: 3.2, duration: 8,   wobble: 2 },
+  { emoji: "🥩", size: 40, left: 58, delay: 0.9, duration: 7,   wobble: 3 },
+  { emoji: "🍟", size: 42, left: 88, delay: 2,   duration: 6,   wobble: 1 },
 ];
 
 const stars = Array.from({ length: 60 }, (_, i) => ({
@@ -53,31 +53,13 @@ const AdminLogin = () => {
     try {
       setLoading(true); setError("");
 
-      // Try admin first, then superadmin automatically
+      // Try login with email
       let response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username.trim(), password: password.trim(), role: "admin" }),
+        body: JSON.stringify({ email: username.trim(), password: password.trim() }),
       });
-      let data = await response.json();
-
-      if (!response.ok) {
-        response = await fetch(`${API_BASE_URL}/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: username.trim(), password: password.trim(), role: "superadmin" }),
-        });
-        data = await response.json();
-      }
-
-      if (!response.ok) {
-        setError(data?.error || "Invalid credentials");
-        setShake(true);
-        setTimeout(() => setShake(false), 600);
-        return;
-      }
-
-      const mustChangePassword = Boolean(data?.user?.mustChangePassword);
+      let data = await response.json();onst mustChangePassword = Boolean(data?.user?.mustChangePassword);
       saveAuthSession(data.token, data.user.role, data.user.name,
         String(data?.user?.restaurantName || ""),
         typeof data?.user?.restaurantId === "number" ? data.user.restaurantId : null,
@@ -141,32 +123,28 @@ const AdminLogin = () => {
 
             {error && (
               <div style={{ marginBottom: 20, padding: "12px 16px", borderRadius: 12, background: "#fff5f5", border: "1.5px solid #fed7d7", color: "#c53030", fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
-                ?? {error}
+                ⚠️ {error}
               </div>
             )}
 
             <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               <div>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#666", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>Email or Username</label>
-                <div style={{ position: "relative" }}>
-                  <Mail style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", width: 17, height: 17, color: "#ccc" }} />
-                  <input type="text" value={username} onChange={e => setUsername(e.target.value)} required placeholder="you@restaurant.com"
-                    style={{ width: "100%", paddingLeft: 44, paddingRight: 16, paddingTop: 14, paddingBottom: 14, borderRadius: 12, border: "2px solid #f0f0f0", background: "#fafafa", fontSize: 14, color: "#1a1a2e", outline: "none", boxSizing: "border-box", transition: "all 0.25s" }}
-                    onFocus={e => { e.target.style.borderColor = "#e53935"; e.target.style.background = "#fff"; e.target.style.boxShadow = "0 0 0 4px rgba(229,57,53,0.1)"; }}
-                    onBlur={e => { e.target.style.borderColor = "#f0f0f0"; e.target.style.background = "#fafafa"; e.target.style.boxShadow = "none"; }} />
-                </div>
+                <input type="text" value={username} onChange={e => setUsername(e.target.value)} required placeholder="you@restaurant.com"
+                  style={{ width: "100%", paddingLeft: 16, paddingRight: 16, paddingTop: 14, paddingBottom: 14, borderRadius: 12, border: "2px solid #f0f0f0", background: "#fafafa", fontSize: 14, color: "#1a1a2e", outline: "none", boxSizing: "border-box", transition: "all 0.25s" }}
+                  onFocus={e => { e.target.style.borderColor = "#e53935"; e.target.style.background = "#fff"; e.target.style.boxShadow = "0 0 0 4px rgba(229,57,53,0.1)"; }}
+                  onBlur={e => { e.target.style.borderColor = "#f0f0f0"; e.target.style.background = "#fafafa"; e.target.style.boxShadow = "none"; }} />
               </div>
 
               <div>
                 <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#666", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>Password</label>
                 <div style={{ position: "relative" }}>
-                  <Lock style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", width: 17, height: 17, color: "#ccc" }} />
-                  <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required placeholder="��������"
-                    style={{ width: "100%", paddingLeft: 44, paddingRight: 48, paddingTop: 14, paddingBottom: 14, borderRadius: 12, border: "2px solid #f0f0f0", background: "#fafafa", fontSize: 14, color: "#1a1a2e", outline: "none", boxSizing: "border-box", transition: "all 0.25s" }}
+                  <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required placeholder="••••••••"
+                    style={{ width: "100%", paddingLeft: 16, paddingRight: 48, paddingTop: 14, paddingBottom: 14, borderRadius: 12, border: "2px solid #f0f0f0", background: "#fafafa", fontSize: 14, color: "#1a1a2e", outline: "none", boxSizing: "border-box", transition: "all 0.25s" }}
                     onFocus={e => { e.target.style.borderColor = "#e53935"; e.target.style.background = "#fff"; e.target.style.boxShadow = "0 0 0 4px rgba(229,57,53,0.1)"; }}
                     onBlur={e => { e.target.style.borderColor = "#f0f0f0"; e.target.style.background = "#fafafa"; e.target.style.boxShadow = "none"; }} />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
-                    style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#ccc", padding: 0, display: "flex" }}>
+                    style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#e53935", padding: 0, display: "flex" }}>
                     {showPassword ? <EyeOff style={{ width: 17, height: 17 }} /> : <Eye style={{ width: 17, height: 17 }} />}
                   </button>
                 </div>
@@ -178,12 +156,12 @@ const AdminLogin = () => {
                 onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 10px 30px rgba(229,57,53,0.45)"; }}>
                 {loading
                   ? <><div style={{ width: 20, height: 20, border: "2.5px solid white", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} /><span>Signing in...</span></>
-                  : <span>Sign In ?</span>}
+                  : <span>Sign In →</span>}
               </button>
             </form>
 
             <div style={{ display: "flex", justifyContent: "center", gap: 16, marginTop: 24 }}>
-              {["?? Secure", "? Fast", "?? Mobile Ready"].map(tag => (
+              {["🔒 Secure", "⚡ Fast", "📱 Mobile Ready"].map(tag => (
                 <span key={tag} style={{ fontSize: 11, color: "#bbb", fontWeight: 500 }}>{tag}</span>
               ))}
             </div>
@@ -195,6 +173,10 @@ const AdminLogin = () => {
         @keyframes twinkle { 0%,100%{opacity:0.1;transform:scale(1)} 50%{opacity:1;transform:scale(1.5)} }
         @keyframes fall1 { 0%{transform:translateY(-80px) rotate(0deg) scale(1);opacity:0} 5%{opacity:1} 30%{transform:translateY(30vh) rotate(120deg) scale(1.1) translateX(15px)} 60%{transform:translateY(60vh) rotate(240deg) scale(0.9) translateX(-10px)} 90%{opacity:0.7} 100%{transform:translateY(110vh) rotate(360deg) scale(1);opacity:0} }
         @keyframes fall2 { 0%{transform:translateY(-80px) rotate(0deg) scale(1);opacity:0} 5%{opacity:1} 25%{transform:translateY(25vh) rotate(90deg) scale(1.15) translateX(-20px)} 55%{transform:translateY(55vh) rotate(200deg) scale(0.85) translateX(18px)} 90%{opacity:0.7} 100%{transform:translateY(110vh) rotate(360deg) scale(1);opacity:0} }
+      <style>{`
+        @keyframes twinkle { 0%,100%{opacity:0.1;transform:scale(1)} 50%{opacity:1;transform:scale(1.5)} }
+        @keyframes fall1 { 0%{transform:translateY(-80px) rotate(0deg) scale(1);opacity:0} 5%{opacity:1} 30%{transform:translateY(30vh) rotate(120deg) scale(1.1) translateX(15px)} 60%{transform:translateY(60vh) rotate(240deg) scale(0.9) translateX(-10px)} 90%{opacity:0.7} 100%{transform:translateY(110vh) rotate(360deg) scale(1);opacity:0} }
+        @keyframes fall2 { 0%{transform:translateY(-80px) rotate(0deg) scale(1);opacity:0} 5%{opacity:1} 25%{transform:translateY(25vh) rotate(90deg) scale(1.15) translateX(-20px)} 55%{transform:translateY(55vh) rotate(200deg) scale(0.85) translateX(18px)} 90%{opacity:0.7} 100%{transform:translateY(110vh) rotate(360deg) scale(1);opacity:0} }
         @keyframes fall3 { 0%{transform:translateY(-80px) rotate(0deg) scale(1);opacity:0} 5%{opacity:1} 20%{transform:translateY(20vh) rotate(60deg) scale(1.2) translateX(25px)} 45%{transform:translateY(45vh) rotate(160deg) scale(0.8) translateX(-22px)} 70%{transform:translateY(70vh) rotate(270deg) scale(1.1) translateX(12px)} 90%{opacity:0.7} 100%{transform:translateY(110vh) rotate(360deg) scale(1);opacity:0} }
         @keyframes shimmer { 0%{left:-100%} 50%{left:150%} 100%{left:150%} }
         @keyframes rainbowSlide { 0%{background-position:0% 0%} 100%{background-position:200% 0%} }
@@ -202,10 +184,9 @@ const AdminLogin = () => {
         @keyframes shake { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-10px)} 30%{transform:translateX(10px)} 45%{transform:translateX(-8px)} 60%{transform:translateX(8px)} 75%{transform:translateX(-4px)} 90%{transform:translateX(4px)} }
         @keyframes spin { to{transform:rotate(360deg)} }
         input::placeholder { color:#ccc; }
+        input[type="password"]::-webkit-credentials-auto-fill-button { display: none !important; }
+        input[type="password"]::-webkit-outer-spin-button,
+        input[type="password"]::-webkit-inner-spin-button { display: none !important; }
         @media (max-width:480px) { .food-item{font-size:24px !important;} }
       `}</style>
-    </div>
-  );
-};
-
 export default AdminLogin;

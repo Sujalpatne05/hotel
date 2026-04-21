@@ -12,7 +12,8 @@ import { apiRequest, API_BASE_URL } from "@/lib/api";
 import { getAuthToken, getStoredRole, getStoredUserId, buildAuthHeaders, getStoredRestaurantName } from "@/lib/session";
 import { toast } from "@/components/ui/sonner";
 import { useLocation } from "react-router-dom";
-import { Monitor, ShoppingCart, UtensilsCrossed } from "lucide-react";
+import { Monitor, ShoppingCart, UtensilsCrossed, Printer } from "lucide-react";
+import { printBill } from "@/lib/printBill";
 
 const ORDER_TYPES = ["dine-in", "take-away", "delivery"] as const;
 const PAYMENT_METHODS = ["upi", "card", "cash"] as const;
@@ -211,6 +212,30 @@ const Billing: React.FC = () => {
 	const tax = Math.round(subtotal * (taxRate / 100));
 	const svc = Math.round(subtotal * (serviceCharge / 100));
 	const total = subtotal + tax + svc;
+
+	const handlePrintBill = () => {
+		if (orderItems.length === 0) {
+			toast.error("No items to print");
+			return;
+		}
+
+		printBill({
+			orderId: existingOrder?.id || "NEW",
+			orderType,
+			tableNumber: orderType === "dine-in" ? selectedTable || undefined : undefined,
+			items: orderItems,
+			subtotal,
+			tax,
+			serviceCharge: svc,
+			total,
+			paymentMethod: (orderType === "delivery" || orderType === "take-away") ? paymentMethod : undefined,
+			customerName: (orderType === "delivery" || orderType === "take-away") ? customer.name : undefined,
+			customerPhone: (orderType === "delivery" || orderType === "take-away") ? customer.phone : undefined,
+			restaurantName: getStoredRestaurantName() || "RestroHub",
+			timestamp: new Date(),
+		});
+	};
+
 	const handlePlaceOrder = async () => {
 		if (!orderItems.length) {
 			toast.error("Please select at least one item before placing order");
@@ -553,6 +578,14 @@ const Billing: React.FC = () => {
 								)}
 								<Button className="w-full bg-orange-500 hover:bg-orange-600 text-sm" onClick={handlePlaceOrder} disabled={orderItems.length === 0}>
 									{existingOrder && existingOrder.status !== 'served' && existingOrder.status !== 'completed' ? "Update Order" : "Place Order"}
+								</Button>
+								<Button 
+									variant="outline" 
+									className="w-full border-orange-300 text-orange-600 hover:bg-orange-50 text-sm mt-2"
+									onClick={handlePrintBill}
+									disabled={orderItems.length === 0}
+								>
+									<Printer size={16} className="mr-2" /> Print Bill
 								</Button>
 							</CardContent>
 						</Card>

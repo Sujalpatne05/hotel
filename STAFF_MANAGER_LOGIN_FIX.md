@@ -1,4 +1,4 @@
-# Staff and Manager Login Fix - Complete
+`# Staff and Manager Login Fix - Complete
 
 ## Problem
 Staff and Manager users couldn't login to the system. The login page was showing "Invalid credentials" errors.

@@ -82,6 +82,13 @@ export async function setupSchema() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS reservation_tokens (
+        id SERIAL PRIMARY KEY,
+        restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+        token TEXT UNIQUE NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS deliveries (
         id SERIAL PRIMARY KEY,
         restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,

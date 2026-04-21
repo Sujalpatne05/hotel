@@ -39,6 +39,7 @@ import NotFound from "./pages/NotFound";
 import AdminUsers from "./pages/AdminUsers";
 import MyProfile from "./pages/MyProfile";
 import Settings from "./pages/Settings";
+import PublicReservation from "./pages/PublicReservation";
 import { getAuthToken, getStoredRole } from "@/lib/session";
 
 const queryClient = new QueryClient();
@@ -147,6 +148,7 @@ const App = () => {
           <Route path="/table-qr/:tableId" element={<TableQROrdering />} />
           <Route path="/table-payment/:tableId/:orderId" element={<TablePayment />} />
           <Route path="/table-confirmation/:tableId/:orderId" element={<TableConfirmation />} />
+          <Route path="/book/:token" element={<PublicReservation />} />
           <Route path="/superadmin-dashboard" element={isSuperAdmin() ? <SuperAdminDashboard /> : <SuperAdminLogin />} />
           <Route path="/superadmin-restaurants" element={isSuperAdmin() ? <SuperAdminRestaurants /> : <SuperAdminLogin />} />
           <Route path="/superadmin-subscriptions" element={isSuperAdmin() ? <SuperAdminSubscriptions /> : <SuperAdminLogin />} />

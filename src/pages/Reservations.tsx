@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { buildAuthHeaders, clearAuthSession, isAuthError } from "@/lib/session";
+import { Copy, Link as LinkIcon } from "lucide-react";
 
 type ReservationStatus = "pending" | "confirmed" | "seated" | "completed" | "cancelled";
 
@@ -76,9 +77,45 @@ export default function Reservations() {
     name: "", phone: "", date: "", time: "", guests: "2", tableNumber: "",
   });
 
+  const [publicLink, setPublicLink] = useState<string>("");
+  const [showLinkModal, setShowLinkModal] = useState(false);
+
   const openEdit = (r: Reservation) => {
     setEditReservation(r);
     setEditForm({ name: r.name, phone: r.phone, date: r.date, time: r.time, guests: String(r.guests), tableNumber: r.tableNumber });
+  };
+
+  const generatePublicLink = async () => {
+    try {
+      const headers = buildAuthHeaders();
+      if (!headers) {
+        goToLogin("Please login to continue.");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/reservations/public/generate`, {
+        method: "POST",
+        headers,
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        toast.error(data?.error || "Failed to generate link");
+        return;
+      }
+
+      const baseUrl = window.location.origin;
+      const fullLink = `${baseUrl}/book/${data.token}`;
+      setPublicLink(fullLink);
+      setShowLinkModal(true);
+    } catch (err) {
+      toast.error("Failed to generate public link");
+    }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(publicLink);
+    toast.success("Link copied to clipboard!");
   };
 
   const saveEdit = async () => {
@@ -356,6 +393,15 @@ export default function Reservations() {
 
         {error && <div className="text-sm text-red-600">{error}</div>}
 
+        <div className="flex gap-2">
+          <Button 
+            onClick={generatePublicLink}
+            className="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-2"
+          >
+            <LinkIcon size={16} /> Generate Booking Link
+          </Button>
+        </div>
+
         <Card className="shadow-card">
           <CardHeader>
             <CardTitle className="text-base">Add Reservation</CardTitle>
@@ -459,6 +505,42 @@ export default function Reservations() {
               <Button className="flex-1 gradient-warm text-primary-foreground" onClick={() => void saveEdit()}>Save Changes</Button>
               <Button variant="outline" className="flex-1" onClick={() => setEditReservation(null)}>Cancel</Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showLinkModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md relative">
+            <button className="absolute top-2 right-2 text-gray-500 hover:text-black text-xl" onClick={() => setShowLinkModal(false)}>x</button>
+            <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+              <LinkIcon size={20} /> Public Booking Link
+            </h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Share this link with customers so they can book a table directly:
+            </p>
+            <div className="bg-gray-50 p-3 rounded-lg mb-4 flex items-center gap-2">
+              <Input 
+                value={publicLink} 
+                readOnly 
+                className="flex-1 bg-white"
+              />
+              <Button 
+                onClick={copyToClipboard}
+                className="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-2"
+              >
+                <Copy size={16} /> Copy
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500 mb-4">
+              Customers can use this link to fill out their reservation details without needing to log in.
+            </p>
+            <Button 
+              onClick={() => setShowLinkModal(false)}
+              className="w-full"
+            >
+              Done
+            </Button>
           </div>
         </div>
       )}

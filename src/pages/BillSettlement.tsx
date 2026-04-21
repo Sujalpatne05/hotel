@@ -5,7 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import React, { useState, useEffect } from "react";
 import { apiRequest } from "@/lib/api";
 import { toast } from "@/components/ui/sonner";
-import { CreditCard, DollarSign, Check } from "lucide-react";
+import { CreditCard, DollarSign, Check, Printer } from "lucide-react";
+import { printBill } from "@/lib/printBill";
+import { getStoredRestaurantName } from "@/lib/session";
 
 type Order = {
   id: number;
@@ -139,6 +141,31 @@ const BillSettlement: React.FC = () => {
     return tables.find((t) => t.number === tableNumber);
   };
 
+  const handlePrintBill = (tableNumber: number, tableOrders: Order[]) => {
+    const totalAmount = tableOrders.reduce((sum, o) => sum + Number(o.total), 0);
+    
+    printBill({
+      orderId: tableOrders[0].id,
+      orderType: "dine-in",
+      tableNumber,
+      items: tableOrders.flatMap(order => 
+        order.items.map(itemStr => {
+          const match = itemStr.match(/^(.+?)\s+x(\d+)$/);
+          if (match) {
+            return { name: match[1], price: 0, qty: Number(match[2]) };
+          }
+          return { name: itemStr, price: 0, qty: 1 };
+        })
+      ),
+      subtotal: totalAmount,
+      tax: 0,
+      serviceCharge: 0,
+      total: totalAmount,
+      restaurantName: getStoredRestaurantName() || "RestroHub",
+      timestamp: new Date(),
+    });
+  };
+
   return (
     <DashboardLayout>
       <div className="min-h-[calc(100vh-80px)] bg-gradient-to-br from-orange-50 via-white to-orange-100 p-6">
@@ -256,27 +283,39 @@ const BillSettlement: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Payment Button */}
-                      <Button
-                        className="w-full bg-green-500 hover:bg-green-600"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePayment(tableOrders[0].id, tableNumber);
-                        }}
-                        disabled={processingOrderId === tableNumber || !isExpanded}
-                      >
-                        {processingOrderId === tableNumber ? (
-                          "Processing..."
-                        ) : !isExpanded ? (
-                          <>
-                            <Check size={16} className="mr-2" /> Select Payment Method First
-                          </>
-                        ) : (
-                          <>
-                            <Check size={16} className="mr-2" /> Collect Payment
-                          </>
-                        )}
-                      </Button>
+                      {/* Buttons */}
+                      <div className="flex flex-col gap-2">
+                        <Button
+                          className="w-full bg-green-500 hover:bg-green-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePayment(tableOrders[0].id, tableNumber);
+                          }}
+                          disabled={processingOrderId === tableNumber || !isExpanded}
+                        >
+                          {processingOrderId === tableNumber ? (
+                            "Processing..."
+                          ) : !isExpanded ? (
+                            <>
+                              <Check size={16} className="mr-2" /> Select Payment Method First
+                            </>
+                          ) : (
+                            <>
+                              <Check size={16} className="mr-2" /> Collect Payment
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="w-full border-orange-300 text-orange-600 hover:bg-orange-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePrintBill(tableNumber, tableOrders);
+                          }}
+                        >
+                          <Printer size={16} className="mr-2" /> Print Bill
+                        </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 );

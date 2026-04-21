@@ -14,6 +14,10 @@ const PWAInstallPrompt: React.FC = () => {
     if (window.matchMedia("(display-mode: standalone)").matches) return;
     if ((window.navigator as any).standalone) return;
 
+    // Don't show if user dismissed it
+    const dismissed = localStorage.getItem("pwa-install-dismissed");
+    if (dismissed) return;
+
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -31,6 +35,11 @@ const PWAInstallPrompt: React.FC = () => {
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === "accepted") setShow(false);
     setDeferredPrompt(null);
+  };
+
+  const handleLater = () => {
+    localStorage.setItem("pwa-install-dismissed", "true");
+    setShow(false);
   };
 
   if (!show || !deferredPrompt) return null;
@@ -51,7 +60,7 @@ const PWAInstallPrompt: React.FC = () => {
         <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>Add to home screen for quick access</div>
       </div>
       <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-        <button onClick={() => setShow(false)} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #e0e0e0", background: "white", fontSize: 12, cursor: "pointer", color: "#666" }}>
+        <button onClick={handleLater} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid #e0e0e0", background: "white", fontSize: 12, cursor: "pointer", color: "#666" }}>
           Later
         </button>
         <button onClick={handleInstall} style={{ padding: "6px 14px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#e53935,#ff6f00)", color: "white", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
