@@ -128,6 +128,9 @@ export default function TableQROrdering() {
             <Check className="text-green-600" size={32} />
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Order Placed!</h2>
+          <p className="text-lg font-semibold text-orange-600 mb-4">
+            Table {tableId}
+          </p>
           <p className="text-gray-600 mb-4">
             Your order has been sent to the kitchen. Please wait for your food to be prepared.
           </p>
