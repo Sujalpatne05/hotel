@@ -5,6 +5,25 @@ import { uploadBase64Image } from '../middleware/upload.mjs';
 
 const router = Router();
 
+// Public menu endpoint for table QR ordering (no auth required)
+router.get('/menu/public/:tableId', async (req, res) => {
+  try {
+    const { tableId } = req.params;
+    // Get restaurant_id from table
+    const { rows: tableRows } = await query(
+      `SELECT restaurant_id FROM tables WHERE id = $1`,
+      [tableId]
+    );
+    if (!tableRows[0]) return res.status(404).json({ error: 'Table not found' });
+
+    const { rows } = await query(
+      `SELECT id, name, category, price, image_url, description, available FROM menu_items WHERE restaurant_id = $1 AND available = true ORDER BY category, name`,
+      [tableRows[0].restaurant_id]
+    );
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/menu', authenticate, async (req, res) => {
   try {
     const { rows } = await query(

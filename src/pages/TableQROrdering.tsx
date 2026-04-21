@@ -33,7 +33,7 @@ export default function TableQROrdering() {
   useEffect(() => {
     const loadMenu = async () => {
       try {
-        const data = await apiRequest<MenuItem[]>("/menu");
+        const data = await fetch(`${API_BASE_URL}/menu/public/${tableId}`).then(r => r.json());
         setMenu(Array.isArray(data) ? data : []);
       } catch (error) {
         toast.error("Unable to load menu");
@@ -42,7 +42,7 @@ export default function TableQROrdering() {
       }
     };
     loadMenu();
-  }, []);
+  }, [tableId]);
 
   const addToCart = (item: MenuItem) => {
     setCart((prev) => {
