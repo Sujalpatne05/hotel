@@ -76,10 +76,10 @@ const PublicReservation: React.FC = () => {
         {
           method: "POST",
           body: JSON.stringify({
-            name: formData.name,
-            phone: formData.phone,
-            date: formData.date,
-            time: formData.time,
+            customer_name: formData.name,
+            customer_phone: formData.phone,
+            reservation_date: formData.date,
+            reservation_time: formData.time,
             guests: Number(formData.guests),
             source: "public_link",
             token,
