@@ -4,6 +4,31 @@ import { authenticate } from '../middleware/auth.mjs';
 
 const router = Router();
 
+// Public order endpoint for table QR ordering (no auth required)
+router.post('/orders/public', async (req, res) => {
+  try {
+    const { items, total, table_number } = req.body;
+    if (!items || !total || !table_number) {
+      return res.status(400).json({ error: 'items, total, and table_number required' });
+    }
+
+    // Get restaurant_id from table
+    const { rows: tableRows } = await query(
+      `SELECT restaurant_id FROM tables WHERE id = $1`,
+      [table_number]
+    );
+    if (!tableRows[0]) return res.status(404).json({ error: 'Table not found' });
+
+    const orderNum = `ORD-${Date.now()}`;
+    const { rows } = await query(
+      `INSERT INTO orders (restaurant_id, order_number, table_number, items, total, status, order_type, payment_status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [tableRows[0].restaurant_id, orderNum, table_number, JSON.stringify(items), Number(total), 'pending', 'dine-in', 'unpaid']
+    );
+    res.status(201).json({ ...rows[0], items: rows[0].items });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.get('/orders', authenticate, async (req, res) => {
   try {
     const { rows } = await query(

@@ -83,7 +83,7 @@ export default function TableQROrdering() {
       const items = cart.map((item) => `${item.name} x${item.quantity}`);
       const total = calculateTotal();
 
-      const response = await fetch(`${API_BASE_URL}/orders`, {
+      const response = await fetch(`${API_BASE_URL}/orders/public`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
