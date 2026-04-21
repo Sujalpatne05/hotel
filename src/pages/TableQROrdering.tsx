@@ -29,6 +29,7 @@ export default function TableQROrdering() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [orderPlaced, setOrderPlaced] = useState(false);
 
   useEffect(() => {
     const loadMenu = async () => {
@@ -100,12 +101,7 @@ export default function TableQROrdering() {
       }
 
       toast.success("Order placed successfully!");
-      setCart([]);
-      
-      // Redirect to payment page
-      setTimeout(() => {
-        navigate(`/table-payment/${tableId}/${data.id}`);
-      }, 1000);
+      setOrderPlaced(true);
     } catch (error) {
       toast.error("Unable to place order");
     } finally {
@@ -119,6 +115,25 @@ export default function TableQROrdering() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading menu...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (orderPlaced) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-yellow-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check className="text-green-600" size={32} />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Order Placed!</h2>
+          <p className="text-gray-600 mb-4">
+            Your order has been sent to the kitchen. Please wait for your food to be prepared.
+          </p>
+          <p className="text-sm text-gray-500">
+            Payment will be collected at the counter.
+          </p>
         </div>
       </div>
     );
